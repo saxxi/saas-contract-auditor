@@ -106,7 +106,7 @@ export function ContractsCanvas() {
   const openReport = openReportId ? reports.get(openReportId) : null;
 
   return (
-    <div className="h-full flex flex-col gap-3 p-4 overflow-hidden">
+    <div className="relative h-full flex flex-col gap-3 p-4 overflow-hidden">
       <SelectedAccountsTable
         accounts={selectedAccounts}
         reports={reports}

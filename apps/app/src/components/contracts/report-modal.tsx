@@ -10,9 +10,9 @@ interface ReportModalProps {
 
 export function ReportModal({ account, report, onClose }: ReportModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg" onClick={onClose}>
       <div
-        className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-[90vw] max-w-4xl max-h-[80vh] flex flex-col"
+        className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-[calc(100%-2rem)] max-h-[calc(100%-2rem)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -32,7 +32,7 @@ export function ReportModal({ account, report, onClose }: ReportModalProps) {
         {/* Body */}
         <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Left: Report content */}
-          <div className="flex-1 p-6 overflow-y-auto border-r border-zinc-200 dark:border-zinc-700">
+          <div className="flex-1 p-6 overflow-y-auto">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
@@ -94,13 +94,6 @@ export function ReportModal({ account, report, onClose }: ReportModalProps) {
             </div>
           </div>
 
-          {/* Right: Chat placeholder */}
-          <div className="w-72 p-6 flex items-center justify-center">
-            <div className="text-center text-zinc-400 text-sm">
-              <p className="mb-1">Chat context will update here</p>
-              <p className="text-xs">(Agent integration pending)</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

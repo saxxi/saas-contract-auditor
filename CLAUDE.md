@@ -26,6 +26,8 @@ Left side:
     | [checkbox] | AC-4 | RRR Corp    |
     | [checkbox] | AC-5 | TTT     |
     | [checkbox] | AC-6 | UUU |
+
+    [Find Opportunities]  <- asks the agent to analyze unselected accounts and auto-select the best opportunities
     ```
 
   - On "selected accounts"
@@ -37,6 +39,12 @@ Left side:
       eg. upon opening account id `AC-2` we should see:
         - left side: a dialog opening with the proposition eg. "we should really upsell because ..."
         - right side: the chat should 'update' and understand we're now talking about that specific contract and we need to allow user to interact with the contract.
+
+  - On "accounts" (lower table)
+    - "Find Opportunities" button: sends unselected accounts data to the agent
+    - Agent analyzes for upsell, renegotiation, churn risk
+    - Agent calls `select_accounts` frontend tool to auto-select the best opportunities
+    - Agent explains reasoning in the chat
 
 # HOW TO OPERATE
 

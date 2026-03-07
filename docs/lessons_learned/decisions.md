@@ -7,3 +7,8 @@
 - Deleted all todo demo components (example-canvas, example-layout, generative-ui hooks) as they are not needed
 - Using Tailwind + shadcn/ui for styling
 - CLAUDE.md had a typo: `docs/lesson_learned` -> `docs/lessons_learned` (fixed)
+- "Find Opportunities" uses CopilotKit's `useFrontendTool` to register a `select_accounts` tool the agent can call to move accounts to the selected table
+- Agent interaction triggered by sending a chat message with serialized account data (JSON summary) via `agent.addMessage` + `agent.runAgent`
+- Agent system prompt updated to understand contracts auditor context (upsell, renegotiation, churn risk)
+- `accountsById` memoized with `useMemo` since accounts data is static
+- Report modal scoped to canvas area (`absolute inset-0` within `relative` parent) instead of full page (`fixed inset-0`) so the chat panel remains visible and interactive during report viewing; removed the chat placeholder div from the modal
