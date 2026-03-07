@@ -7,9 +7,11 @@ interface ReportModalProps {
   report: Report;
   summary?: AccountSummary;
   onClose: () => void;
+  onRegenerate: (id: string) => void;
+  isRegenerating?: boolean;
 }
 
-export function ReportModal({ account, report, summary, onClose }: ReportModalProps) {
+export function ReportModal({ account, report, summary, onClose, onRegenerate, isRegenerating }: ReportModalProps) {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg" onClick={onClose}>
       <div
@@ -20,14 +22,26 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <div>
             <h2 className="text-lg font-semibold">{account.name}</h2>
-            <span className="text-sm text-zinc-500">{account.id}{summary ? ` \u00b7 ${summary.budget_report.tier}` : ""}</span>
+            <span className="text-sm text-zinc-500">
+              {account.id}{summary ? ` \u00b7 ${summary.budget_report.tier}` : ""}
+              {" \u00b7 "}Generated {new Date(report.generated_at).toLocaleDateString()}
+            </span>
           </div>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl leading-none px-2"
-          >
-            &times;
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onRegenerate(account.id)}
+              disabled={isRegenerating}
+              className="text-xs px-3 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isRegenerating ? "Regenerating..." : "Regenerate"}
+            </button>
+            <button
+              onClick={onClose}
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl leading-none px-2"
+            >
+              &times;
+            </button>
+          </div>
         </div>
 
         {/* Body */}

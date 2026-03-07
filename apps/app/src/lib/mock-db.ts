@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "./db";
 import {
   accounts as accountsTable,
@@ -56,12 +56,17 @@ export async function getAccountSummaries(ids: string[]): Promise<AccountSummary
 }
 
 export async function getReports(): Promise<Report[]> {
-  const rows = await db.select().from(reportsTable);
+  const rows = await db.select().from(reportsTable).orderBy(desc(reportsTable.generated_at));
   return rows as Report[];
 }
 
 export async function getReport(accountId: string): Promise<Report | undefined> {
-  const rows = await db.select().from(reportsTable).where(eq(reportsTable.account_id, accountId));
+  const rows = await db
+    .select()
+    .from(reportsTable)
+    .where(eq(reportsTable.account_id, accountId))
+    .orderBy(desc(reportsTable.generated_at))
+    .limit(1);
   return rows[0] as Report | undefined;
 }
 
@@ -108,9 +113,6 @@ async function getAccountFull(accountId: string): Promise<AccountFullRow | undef
 }
 
 export async function createReport(accountId: string): Promise<Report | null> {
-  const existing = await getReport(accountId);
-  if (existing) return existing;
-
   const account = await getAccountFull(accountId);
   if (!account) return null;
 
@@ -174,11 +176,16 @@ function generateMockReport(account: AccountFullRow): Report {
     content = `${account.name} is healthy with balanced usage (avg ${Math.round(avgUtilization * 100)}% utilization) on ${account.tier} plan. MRR: $${account.mrr.toLocaleString()}. No immediate action required. Renewal in ${account.renewal_in_days} days.`;
   }
 
+  const now = new Date().toISOString();
   return {
+    id: crypto.randomUUID(),
     account_id: account.id,
     proposition_type,
     success_percent,
     intervene,
     content,
+    generated_at: now,
+    created_at: now,
+    updated_at: now,
   };
 }

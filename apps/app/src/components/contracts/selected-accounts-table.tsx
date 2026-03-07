@@ -87,8 +87,9 @@ export function SelectedAccountsTable({
                       <button
                         onClick={() => onOpenReport(account.id)}
                         className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        title={report.generated_at}
                       >
-                        Generated [open]
+                        {new Date(report.generated_at).toLocaleDateString()}
                       </button>
                     ) : (
                       <button

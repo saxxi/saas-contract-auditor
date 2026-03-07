@@ -1,37 +1,18 @@
 - Frontend-first approach: hardcode account data in FE, backend integration comes later
-- Account selection state is local React state for now; will move to agent state later (tracking selected + focused account)
-- Report generation is mock/instant for now; will call agent later
-- Report view uses a modal/dialog overlay (not page replacement)
-- Chat integration with report context is deferred (no agent interaction when viewing a report yet)
-- Layout: chat always on the right, accounts on the left; removed the chat/app mode toggle from the original demo
-- Deleted all todo demo components (example-canvas, example-layout, generative-ui hooks) as they are not needed
-- Using Tailwind + shadcn/ui for styling
-- CLAUDE.md had a typo: `docs/lesson_learned` -> `docs/lessons_learned` (fixed)
-- "Find Opportunities" uses CopilotKit's `useFrontendTool` to register a `select_accounts` tool the agent can call to move accounts to the selected table
-- Agent interaction triggered by sending a chat message with serialized account data (JSON summary) via `agent.addMessage` + `agent.runAgent`
-- Agent system prompt updated to understand contracts auditor context (upsell, renegotiation, churn risk)
-- `accountsById` memoized with `useMemo` since accounts data is static
-- Report modal scoped to canvas area (`absolute inset-0` within `relative` parent) instead of full page (`fixed inset-0`) so the chat panel remains visible and interactive during report viewing; removed the chat placeholder div from the modal
-- Prefer full RESTful approach: each action maps to a standard HTTP verb on a resource. Good: `PUT /invoices/123` -> `invoices_controller#update`. Bad: `POST /invoices/123/preview` -> `invoices_controller#preview`. Instead use a separate resource controller: `GET /invoices/123/preview` -> `invoices/preview_controller#show`
-- Accounts data stays as static FE data (Option A), not in agent state — avoids bloating state sync with 50 accounts. Agent receives account data via chat messages when needed
+- Report modal scoped to canvas area (`absolute inset-0` within `relative` parent) so the chat panel remains visible
+- Prefer full RESTful approach: each action maps to a standard HTTP verb on a resource. Use separate resource controllers instead of custom actions
 - Selection merged with reports: an account is "selected" if it has an entry in `account_reports[]`. No separate `selectedIds` set
 - REST API is for data operations (reports), not for UI interaction state (selection, focus). Selection/focus lives in agent state
-- Report generation nested under accounts: `POST /api/accounts/:account_id/account_reports` (resource-oriented)
-- Batch generation at `POST /api/account_reports/batch` for generating reports for up to 5 selected accounts without reports (was 50, reduced to keep responses fast)
-- Using TanStack React Query (`@tanstack/react-query`) for REST data fetching — handles caching, loading states, cache invalidation. No manual useEffect/useState for server data
-- Backend integration implemented: REST API routes (Next.js), agent state for selection/focus (CopilotKit), React Query for data fetching
-- `report-utils.ts` deleted — report generation logic moved to `apps/app/src/lib/mock-db.ts` (server-side in-memory store)
-- `apps/agent/src/todos.py` replaced by `apps/agent/src/contracts.py` with `select_accounts` and `get_account_reports` tools
+- Using TanStack React Query for REST data fetching — handles caching, loading states, cache invalidation
 - Agent state schema: `account_reports: list[AccountReport]` + `focused_account_id: str | None`
-- `useFrontendTool` for `select_accounts` removed — now a backend agent tool in `contracts.py`
+- `select_accounts` is a backend agent tool in `contracts.py`, not a frontend tool
 - Next.js 16 route handlers use `params: Promise<{...}>` pattern (must await params)
-- `/api/accounts` returns minimal data (id, name only). Detailed usage/budget data comes from separate `GET /api/account_summaries?account_ids=...` endpoint (simulates fetching from different tables)
-- All backend responses and frontend types use snake_case fields (`account_id`, `proposition_type`, `success_percent`) — no camelCase conversion layer
-- `Account` type is minimal (id, name). `AccountSummary` holds the detailed usage/budget data (fetched on demand via `useAccountSummaries` hook)
-- Agent state changes logged to console via `useEffect` for dev verification
-- Moved from in-memory store to PostgreSQL via Drizzle ORM (`drizzle-orm` + `postgres` driver). Schema in `apps/app/src/lib/db/schema.ts`
-- Seed script at `apps/app/src/lib/db/seed.ts` — run with `pnpm --filter @repo/app db:seed`
-- `pnpm --filter @repo/app db:push` to push schema to DB
-- Next.js loads env from `apps/app/.env.local` (not root `.env`). Keep both in sync
-- Drizzle config and seed script use `dotenv` with `path: "../../.env"` to find root env
+- All backend responses and frontend types use snake_case fields — no camelCase conversion layer
+- `Account` type is minimal (id, name). `AccountSummary` holds detailed usage/budget data (fetched on demand)
 - Architecture: Next.js = data layer (DB, REST API), Python = agent logic (LLM, tools, state). Python agent calls Next.js API routes when it needs data
+- PostgreSQL via Drizzle ORM. Schema in `apps/app/src/lib/db/schema.ts`. Seed: `pnpm --filter @repo/app db:seed`. Push: `pnpm --filter @repo/app db:push`
+- Next.js loads env from `apps/app/.env.local` (not root `.env`). Drizzle config uses `dotenv` with `path: "../../.env"`
+- All DB tables follow ActiveRecord conventions: `id` PK, `created_at`, `updated_at`, plural table names
+- Prefer specialized timestamp columns for business-critical dates (e.g. `generated_at` for reports) alongside standard `created_at`/`updated_at`
+- Reports table supports multiple reports per account. `reportsById` maps to the latest report per account. Regeneration always creates a new row
+- `agent.setState()` replaces the entire state — always spread `...agent.state` to preserve existing keys

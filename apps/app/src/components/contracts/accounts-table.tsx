@@ -1,15 +1,16 @@
 "use client";
 
-import { Account } from "./types";
+import { Account, Report } from "./types";
 
 interface AccountsTableProps {
   accounts: Account[];
+  reports: Map<string, Report>;
   onSelect: (id: string) => void;
   onFindOpportunities: () => void;
   isFinding: boolean;
 }
 
-export function AccountsTable({ accounts, onSelect, onFindOpportunities, isFinding }: AccountsTableProps) {
+export function AccountsTable({ accounts, reports, onSelect, onFindOpportunities, isFinding }: AccountsTableProps) {
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex items-center justify-between px-1 py-2">
@@ -40,6 +41,7 @@ export function AccountsTable({ accounts, onSelect, onFindOpportunities, isFindi
               <th className="w-10 px-3 py-2"></th>
               <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-300">ID</th>
               <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-300">Name</th>
+              <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-300">Report</th>
             </tr>
           </thead>
           <tbody>
@@ -58,11 +60,20 @@ export function AccountsTable({ accounts, onSelect, onFindOpportunities, isFindi
                 </td>
                 <td className="px-3 py-2 text-zinc-500 font-mono text-xs">{account.id}</td>
                 <td className="px-3 py-2 font-medium">{account.name}</td>
+                <td className="px-3 py-2">
+                  {reports.has(account.id) ? (
+                    <span className="text-xs text-zinc-500" title={reports.get(account.id)!.generated_at}>
+                      {new Date(reports.get(account.id)!.generated_at).toLocaleDateString()}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-zinc-400">—</span>
+                  )}
+                </td>
               </tr>
             ))}
             {accounts.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-3 py-8 text-center text-zinc-400">
+                <td colSpan={4} className="px-3 py-8 text-center text-zinc-400">
                   All accounts selected
                 </td>
               </tr>

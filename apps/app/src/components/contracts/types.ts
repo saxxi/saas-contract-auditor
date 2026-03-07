@@ -19,9 +19,13 @@ export type PropositionType =
   | "healthy";
 
 export interface Report {
+  id: string;
   account_id: string;
   proposition_type: PropositionType;
   success_percent: number;
   intervene: boolean;
   content: string;
+  generated_at: string;
+  created_at: string;
+  updated_at: string;
 }

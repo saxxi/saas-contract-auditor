@@ -22,7 +22,14 @@ export function ContractsCanvas() {
   const generateBatch = useGenerateReportsBatch();
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
-  const reportsById = useMemo(() => new Map(reports.map((r) => [r.account_id, r])), [reports]);
+  // Reports come sorted by generated_at desc; first entry per account is the latest
+  const reportsById = useMemo(() => {
+    const map = new Map<string, typeof reports[number]>();
+    for (const r of reports) {
+      if (!map.has(r.account_id)) map.set(r.account_id, r);
+    }
+    return map;
+  }, [reports]);
 
   // Selection derived from agent state
   const accountReports: AccountReportEntry[] = agent.state?.account_reports ?? [];
@@ -47,6 +54,7 @@ export function ContractsCanvas() {
     if (existing.some((ar) => ar.id === id)) return;
     const status = reportsById.has(id) ? "generated" : "pending";
     agent.setState({
+      ...agent.state,
       account_reports: [...existing, { id, status }],
     });
   }, [agent, reportsById]);
@@ -54,6 +62,7 @@ export function ContractsCanvas() {
   const handleDeselect = useCallback((id: string) => {
     const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
     agent.setState({
+      ...agent.state,
       account_reports: existing.filter((ar) => ar.id !== id),
     });
   }, [agent]);
@@ -63,6 +72,7 @@ export function ContractsCanvas() {
       onSuccess: () => {
         const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
         agent.setState({
+          ...agent.state,
           account_reports: existing.map((ar) =>
             ar.id === id ? { ...ar, status: "generated" as const } : ar
           ),
@@ -81,6 +91,7 @@ export function ContractsCanvas() {
         const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
         const generatedSet = new Set(pendingIds);
         agent.setState({
+          ...agent.state,
           account_reports: existing.map((ar) =>
             generatedSet.has(ar.id) ? { ...ar, status: "generated" as const } : ar
           ),
@@ -122,7 +133,7 @@ export function ContractsCanvas() {
   }, [accounts, selectedIds, agent]);
 
   const setFocusedAccount = useCallback((id: string | null) => {
-    agent.setState({ focused_account_id: id });
+    agent.setState({ ...agent.state, focused_account_id: id });
   }, [agent]);
 
   // Fetch focused account's report and summary directly (handles data not yet in bulk queries)
@@ -147,6 +158,7 @@ export function ContractsCanvas() {
       />
       <AccountsTable
         accounts={unselectedAccounts}
+        reports={reportsById}
         onSelect={handleSelect}
         onFindOpportunities={handleFindOpportunities}
         isFinding={agent.isRunning}
@@ -157,6 +169,8 @@ export function ContractsCanvas() {
           report={openReport}
           summary={openSummary}
           onClose={() => setFocusedAccount(null)}
+          onRegenerate={handleGenerateReport}
+          isRegenerating={generateReport.isPending}
         />
       )}
     </div>
