@@ -1,10 +1,11 @@
 "use client";
 
-import { Account, Report } from "./types";
+import { Account, AccountSummary, Report } from "./types";
 
 interface SelectedAccountsTableProps {
   accounts: Account[];
   reports: Map<string, Report>;
+  summaries: Map<string, AccountSummary>;
   onDeselect: (id: string) => void;
   onGenerateReport: (id: string) => void;
   onGenerateMissing: () => void;
@@ -29,6 +30,7 @@ function PropositionBadge({ type }: { type: string }) {
 export function SelectedAccountsTable({
   accounts,
   reports,
+  summaries,
   onDeselect,
   onGenerateReport,
   onGenerateMissing,
@@ -100,12 +102,12 @@ export function SelectedAccountsTable({
                   <td className="px-3 py-2 text-zinc-500 font-mono text-xs">{account.id}</td>
                   <td className="px-3 py-2 font-medium">{account.name}</td>
                   <td className="px-3 py-2">
-                    {report ? <PropositionBadge type={report.propositionType} /> : <span className="text-zinc-300">--</span>}
+                    {report ? <PropositionBadge type={report.proposition_type} /> : <span className="text-zinc-300">--</span>}
                   </td>
                   <td className="px-3 py-2 text-right">
                     {report ? (
-                      <span className={report.successPercent >= 70 ? "text-green-600" : report.successPercent >= 40 ? "text-amber-600" : "text-red-600"}>
-                        {report.successPercent}%
+                      <span className={report.success_percent >= 70 ? "text-green-600" : report.success_percent >= 40 ? "text-amber-600" : "text-red-600"}>
+                        {report.success_percent}%
                       </span>
                     ) : (
                       <span className="text-zinc-300">--</span>

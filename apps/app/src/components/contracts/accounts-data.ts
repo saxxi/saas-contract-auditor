@@ -1,6 +1,15 @@
-import { Account } from "./types";
+import { Account, AccountSummary } from "./types";
 
-export const accounts: Account[] = [
+interface AccountSeedEntry {
+  id: string;
+  name: string;
+  active_users_report: { active_users: number; seat_limit: number };
+  invoicing_usage_report: { monthly_invoices: number; invoice_limit: number };
+  integrations_usage_report: { active_integrations: number; integration_limit: number };
+  budget_report: { mrr: number; contract_value: number; tier: string; renewal_in_days: number; payment_status: string };
+}
+
+export const accountSeedData: AccountSeedEntry[] = [
   { "id": "AC-1", "name": "TechCorp", "active_users_report": { "active_users": 95, "seat_limit": 100 }, "invoicing_usage_report": { "monthly_invoices": 460, "invoice_limit": 500 }, "integrations_usage_report": { "active_integrations": 8, "integration_limit": 10 }, "budget_report": { "mrr": 4200, "contract_value": 50400, "tier": "Growth", "renewal_in_days": 45, "payment_status": "current" } },
   { "id": "AC-2", "name": "BioLabs", "active_users_report": { "active_users": 40, "seat_limit": 100 }, "invoicing_usage_report": { "monthly_invoices": 200, "invoice_limit": 500 }, "integrations_usage_report": { "active_integrations": 2, "integration_limit": 10 }, "budget_report": { "mrr": 1100, "contract_value": 13200, "tier": "Starter", "renewal_in_days": 210, "payment_status": "current" } },
   { "id": "AC-3", "name": "Arctic Ltd", "active_users_report": { "active_users": 88, "seat_limit": 100 }, "invoicing_usage_report": { "monthly_invoices": 430, "invoice_limit": 500 }, "integrations_usage_report": { "active_integrations": 9, "integration_limit": 10 }, "budget_report": { "mrr": 3800, "contract_value": 45600, "tier": "Growth", "renewal_in_days": 12, "payment_status": "overdue" } },
@@ -52,3 +61,5 @@ export const accounts: Account[] = [
   { "id": "AC-49", "name": "Stonehenge Inc", "active_users_report": { "active_users": 10, "seat_limit": 20 }, "invoicing_usage_report": { "monthly_invoices": 20, "invoice_limit": 100 }, "integrations_usage_report": { "active_integrations": 1, "integration_limit": 5 }, "budget_report": { "mrr": 500, "contract_value": 6000, "tier": "Starter", "renewal_in_days": 300, "payment_status": "current" } },
   { "id": "AC-50", "name": "Delta Robotics", "active_users_report": { "active_users": 1020, "seat_limit": 1000 }, "invoicing_usage_report": { "monthly_invoices": 5100, "invoice_limit": 5000 }, "integrations_usage_report": { "active_integrations": 55, "integration_limit": 50 }, "budget_report": { "mrr": 31000, "contract_value": 372000, "tier": "Enterprise", "renewal_in_days": 40, "payment_status": "current" } },
 ];
+
+export const accounts: Account[] = accountSeedData.map(({ id, name }) => ({ id, name }));

@@ -40,8 +40,6 @@ export function AccountsTable({ accounts, onSelect, onFindOpportunities, isFindi
               <th className="w-10 px-3 py-2"></th>
               <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-300">ID</th>
               <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-300">Name</th>
-              <th className="px-3 py-2 text-left font-medium text-zinc-600 dark:text-zinc-300">Tier</th>
-              <th className="px-3 py-2 text-right font-medium text-zinc-600 dark:text-zinc-300">MRR</th>
             </tr>
           </thead>
           <tbody>
@@ -60,13 +58,11 @@ export function AccountsTable({ accounts, onSelect, onFindOpportunities, isFindi
                 </td>
                 <td className="px-3 py-2 text-zinc-500 font-mono text-xs">{account.id}</td>
                 <td className="px-3 py-2 font-medium">{account.name}</td>
-                <td className="px-3 py-2 text-zinc-500">{account.budget_report.tier}</td>
-                <td className="px-3 py-2 text-right text-zinc-500">${account.budget_report.mrr.toLocaleString()}</td>
               </tr>
             ))}
             {accounts.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-zinc-400">
+                <td colSpan={3} className="px-3 py-8 text-center text-zinc-400">
                   All accounts selected
                 </td>
               </tr>

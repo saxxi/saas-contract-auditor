@@ -1,98 +1,117 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
-import { useFrontendTool } from "@copilotkit/react-core";
-import { accounts } from "./accounts-data";
-import { Account, Report } from "./types";
-import { generateMockReport } from "./report-utils";
+import { useAccounts } from "@/hooks/use-accounts";
+import { useAccountReport, useAccountReports, useGenerateReport, useGenerateReportsBatch } from "@/hooks/use-account-reports";
+import { useAccountSummaries } from "@/hooks/use-account-summaries";
 import { SelectedAccountsTable } from "./selected-accounts-table";
 import { AccountsTable } from "./accounts-table";
 import { ReportModal } from "./report-modal";
 
+interface AccountReportEntry {
+  id: string;
+  status: "pending" | "generated";
+}
+
 export function ContractsCanvas() {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [reports, setReports] = useState<Map<string, Report>>(new Map());
-  const [openReportId, setOpenReportId] = useState<string | null>(null);
-
   const { agent } = useAgent();
+  const { data: accounts = [] } = useAccounts();
+  const { data: reports = [] } = useAccountReports();
+  const generateReport = useGenerateReport();
+  const generateBatch = useGenerateReportsBatch();
 
-  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), []);
+  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const reportsById = useMemo(() => new Map(reports.map((r) => [r.account_id, r])), [reports]);
+
+  // Selection derived from agent state
+  const accountReports: AccountReportEntry[] = agent.state?.account_reports ?? [];
+  const selectedIds = useMemo(() => new Set(accountReports.map((ar) => ar.id)), [accountReports]);
+  const focusedAccountId: string | null = agent.state?.focused_account_id ?? null;
+
+  // Fetch summaries for selected accounts
+  const selectedIdList = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const { data: summaries = [] } = useAccountSummaries(selectedIdList);
+  const summariesById = useMemo(() => new Map(summaries.map((s) => [s.id, s])), [summaries]);
+
+  // Log agent state changes
+  useEffect(() => {
+    console.log("[agent state]", agent.state);
+  }, [agent.state]);
 
   const selectedAccounts = accounts.filter((a) => selectedIds.has(a.id));
   const unselectedAccounts = accounts.filter((a) => !selectedIds.has(a.id));
 
-  // Frontend tool: lets the agent select accounts by IDs
-  useFrontendTool({
-    name: "select_accounts",
-    description: "Select accounts by their IDs to move them to the Selected Accounts table for review. Call this with the account IDs you want to recommend as opportunities.",
-    parameters: [
-      {
-        name: "account_ids",
-        type: "string[]",
-        description: "Array of account IDs to select (e.g. ['AC-4', 'AC-6'])",
-        required: true,
-      },
-    ],
-    handler: async ({ account_ids }: { account_ids: string[] }) => {
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        for (const id of account_ids) {
-          if (accountsById.has(id)) next.add(id);
-        }
-        return next;
-      });
-      return `Selected ${account_ids.length} accounts: ${account_ids.join(", ")}`;
-    },
-  });
-
   const handleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => new Set([...prev, id]));
-  }, []);
+    const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
+    if (existing.some((ar) => ar.id === id)) return;
+    const status = reportsById.has(id) ? "generated" : "pending";
+    agent.setState({
+      account_reports: [...existing, { id, status }],
+    });
+  }, [agent, reportsById]);
 
   const handleDeselect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
+    const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
+    agent.setState({
+      account_reports: existing.filter((ar) => ar.id !== id),
     });
-  }, []);
+  }, [agent]);
 
   const handleGenerateReport = useCallback((id: string) => {
-    const account = accountsById.get(id);
-    if (!account) return;
-    const report = generateMockReport(account);
-    setReports((prev) => new Map([...prev, [id, report]]));
-  }, [accountsById]);
+    generateReport.mutate(id, {
+      onSuccess: () => {
+        const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
+        agent.setState({
+          account_reports: existing.map((ar) =>
+            ar.id === id ? { ...ar, status: "generated" as const } : ar
+          ),
+        });
+      },
+    });
+  }, [generateReport, agent]);
 
   const handleGenerateMissing = useCallback(() => {
-    setReports((prev) => {
-      const next = new Map(prev);
-      for (const id of selectedIds) {
-        if (!next.has(id)) {
-          const account = accountsById.get(id);
-          if (account) next.set(id, generateMockReport(account));
-        }
-      }
-      return next;
+    const pendingIds = accountReports
+      .filter((ar) => !reportsById.has(ar.id))
+      .map((ar) => ar.id);
+    if (pendingIds.length === 0) return;
+    generateBatch.mutate(pendingIds, {
+      onSuccess: () => {
+        const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
+        const generatedSet = new Set(pendingIds);
+        agent.setState({
+          account_reports: existing.map((ar) =>
+            generatedSet.has(ar.id) ? { ...ar, status: "generated" as const } : ar
+          ),
+        });
+      },
     });
-  }, [selectedIds, accountsById]);
+  }, [accountReports, reportsById, generateBatch, agent]);
 
-  const handleFindOpportunities = useCallback(() => {
+  const handleFindOpportunities = useCallback(async () => {
     const unselected = accounts.filter((a) => !selectedIds.has(a.id));
     if (unselected.length === 0) return;
 
-    const summary = unselected.map((a: Account) => ({
-      id: a.id,
-      name: a.name,
-      tier: a.budget_report.tier,
-      mrr: a.budget_report.mrr,
-      renewal_in_days: a.budget_report.renewal_in_days,
-      payment_status: a.budget_report.payment_status,
-      user_utilization: `${a.active_users_report.active_users}/${a.active_users_report.seat_limit}`,
-      invoice_utilization: `${a.invoicing_usage_report.monthly_invoices}/${a.invoicing_usage_report.invoice_limit}`,
-      integration_utilization: `${a.integrations_usage_report.active_integrations}/${a.integrations_usage_report.integration_limit}`,
-    }));
+    const unselectedIds = unselected.map((a) => a.id).join(",");
+    const res = await fetch(`/api/account_summaries?account_ids=${unselectedIds}`);
+    const unselectedSummaries = await res.json();
+
+    const summary = unselected.map((a) => {
+      const s = unselectedSummaries.find((us: { id: string }) => us.id === a.id);
+      if (!s) return { id: a.id, name: a.name };
+      return {
+        id: a.id,
+        name: a.name,
+        tier: s.budget_report.tier,
+        mrr: s.budget_report.mrr,
+        renewal_in_days: s.budget_report.renewal_in_days,
+        payment_status: s.budget_report.payment_status,
+        user_utilization: `${s.active_users_report.active_users}/${s.active_users_report.seat_limit}`,
+        invoice_utilization: `${s.invoicing_usage_report.monthly_invoices}/${s.invoicing_usage_report.invoice_limit}`,
+        integration_utilization: `${s.integrations_usage_report.active_integrations}/${s.integrations_usage_report.integration_limit}`,
+      };
+    });
 
     agent.addMessage({
       role: "user",
@@ -100,20 +119,31 @@ export function ContractsCanvas() {
       content: `Analyze these unselected accounts and find the top opportunities for upsell, contract renegotiation, or accounts at risk of churning. Select the most promising ones using the select_accounts tool. Here are the accounts:\n\n${JSON.stringify(summary, null, 2)}`,
     });
     agent.runAgent();
-  }, [selectedIds, agent]);
+  }, [accounts, selectedIds, agent]);
 
-  const openAccount = openReportId ? accountsById.get(openReportId) : null;
-  const openReport = openReportId ? reports.get(openReportId) : null;
+  const setFocusedAccount = useCallback((id: string | null) => {
+    agent.setState({ focused_account_id: id });
+  }, [agent]);
+
+  // Fetch focused account's report and summary directly (handles data not yet in bulk queries)
+  const { data: focusedReport } = useAccountReport(focusedAccountId);
+  const focusedIdList = useMemo(() => focusedAccountId ? [focusedAccountId] : [], [focusedAccountId]);
+  const { data: focusedSummaries = [] } = useAccountSummaries(focusedIdList);
+
+  const openAccount = focusedAccountId ? accountsById.get(focusedAccountId) : null;
+  const openReport = focusedAccountId ? (reportsById.get(focusedAccountId) ?? focusedReport ?? null) : null;
+  const openSummary = focusedAccountId ? (summariesById.get(focusedAccountId) ?? focusedSummaries[0]) : undefined;
 
   return (
     <div className="relative h-full flex flex-col gap-3 p-4 overflow-hidden">
       <SelectedAccountsTable
         accounts={selectedAccounts}
-        reports={reports}
+        reports={reportsById}
+        summaries={summariesById}
         onDeselect={handleDeselect}
         onGenerateReport={handleGenerateReport}
         onGenerateMissing={handleGenerateMissing}
-        onOpenReport={setOpenReportId}
+        onOpenReport={setFocusedAccount}
       />
       <AccountsTable
         accounts={unselectedAccounts}
@@ -125,7 +155,8 @@ export function ContractsCanvas() {
         <ReportModal
           account={openAccount}
           report={openReport}
-          onClose={() => setOpenReportId(null)}
+          summary={openSummary}
+          onClose={() => setFocusedAccount(null)}
         />
       )}
     </div>

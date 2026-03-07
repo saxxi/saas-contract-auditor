@@ -1,4 +1,4 @@
-# CopilotKit <> LangGraph Starter
+# Contracts Auditor
 
 This is a starter template for building AI agents using [LangGraph](https://www.langchain.com/langgraph) and [CopilotKit](https://copilotkit.ai). It provides a modern Next.js application with an integrated LangGraph agent to be built on top of.
 
@@ -6,7 +6,7 @@ https://github.com/user-attachments/assets/47761912-d46a-4fb3-b9bd-cb41ddd02e34
 
 ## Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - Python 3.8+
 - Any of the following package managers:
   - [pnpm](https://pnpm.io/installation) (recommended)
@@ -19,21 +19,10 @@ https://github.com/user-attachments/assets/47761912-d46a-4fb3-b9bd-cb41ddd02e34
 
 ## Getting Started
 
-1. Install dependencies using your preferred package manager:
+1. Install dependencies:
 ```bash
-# Using pnpm (recommended)
 pnpm install
-
-# Using npm
-npm install
-
-# Using yarn
-yarn install
-
-# Using bun
-bun install
 ```
-
 
 2. Set up your environment variables:
 ```bash
@@ -44,35 +33,41 @@ Then edit the `.env` file and add your OpenAI API key:
 
 ```bash
 OPENAI_API_KEY=your-openai-api-key-here
+DATABASE_URL=postgresql://postgres@localhost:5432/contracts_auditor
 ```
 
-3. Start the development server:
+3. Set up the database (requires PostgreSQL running locally):
 ```bash
-# Using pnpm
+# Create the database
+psql -U postgres -c "CREATE DATABASE contracts_auditor"
+
+# Push the schema (creates tables)
+pnpm --filter @repo/app db:push
+
+# Seed with 50 accounts + 6 historical deals
+pnpm --filter @repo/app db:seed
+```
+
+4. Start the development server:
+```bash
 pnpm dev
-
-# Using npm
-npm run dev
-
-# Using yarn
-yarn dev
-
-# Using bun
-bun run dev
 ```
 
 This will start both the UI and agent servers concurrently.
 
 ## Available Scripts
-The following scripts can also be run using your preferred package manager:
-- `dev` - Starts both UI and agent servers in development mode
-- `dev:debug` - Starts development servers with debug logging enabled
-- `dev:ui` - Starts only the Next.js UI server
-- `dev:agent` - Starts only the LangGraph agent server
-- `build` - Builds the Next.js application for production
-- `start` - Starts the production server
-- `lint` - Runs ESLint for code linting
-- `install:agent` - Installs Python dependencies for the agent
+
+- `pnpm dev` - Starts both UI and agent servers in development mode
+- `pnpm dev:app` - Starts only the Next.js UI server
+- `pnpm dev:agent` - Starts only the LangGraph agent server
+- `pnpm build` - Builds the Next.js application for production
+- `pnpm lint` - Runs ESLint for code linting
+
+### Database Scripts (run from `apps/app`)
+
+- `pnpm --filter @repo/app db:push` - Push schema to database (dev)
+- `pnpm --filter @repo/app db:generate` - Generate migrations
+- `pnpm --filter @repo/app db:seed` - Seed accounts and historical deals
 
 ## Documentation
 
@@ -102,8 +97,17 @@ If you see "I'm having trouble connecting to my tools", make sure:
 2. Your OpenAI API key is set correctly
 3. Both servers started successfully
 
-### Python Dependencies
-If you encounter Python import errors:
+### Database Issues
+If you need to reset the database:
 ```bash
-npm install:agent
+psql -U postgres -c "DROP DATABASE contracts_auditor"
+psql -U postgres -c "CREATE DATABASE contracts_auditor"
+pnpm --filter @repo/app db:push
+pnpm --filter @repo/app db:seed
+```
+
+### Python Dependencies
+If you encounter Python import errors, install the agent dependencies:
+```bash
+cd apps/agent && pip install -e .
 ```

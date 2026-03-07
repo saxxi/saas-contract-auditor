@@ -1,14 +1,15 @@
 "use client";
 
-import { Account, Report } from "./types";
+import { Account, AccountSummary, Report } from "./types";
 
 interface ReportModalProps {
   account: Account;
   report: Report;
+  summary?: AccountSummary;
   onClose: () => void;
 }
 
-export function ReportModal({ account, report, onClose }: ReportModalProps) {
+export function ReportModal({ account, report, summary, onClose }: ReportModalProps) {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg" onClick={onClose}>
       <div
@@ -19,7 +20,7 @@ export function ReportModal({ account, report, onClose }: ReportModalProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <div>
             <h2 className="text-lg font-semibold">{account.name}</h2>
-            <span className="text-sm text-zinc-500">{account.id} &middot; {account.budget_report.tier}</span>
+            <span className="text-sm text-zinc-500">{account.id}{summary ? ` \u00b7 ${summary.budget_report.tier}` : ""}</span>
           </div>
           <button
             onClick={onClose}
@@ -36,17 +37,17 @@ export function ReportModal({ account, report, onClose }: ReportModalProps) {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                  report.propositionType === "requires negotiation" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" :
-                  report.propositionType === "upsell proposition" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" :
-                  report.propositionType === "poor usage" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" :
-                  report.propositionType === "at capacity" ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" :
+                  report.proposition_type === "requires negotiation" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" :
+                  report.proposition_type === "upsell proposition" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" :
+                  report.proposition_type === "poor usage" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" :
+                  report.proposition_type === "at capacity" ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" :
                   "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
                 }`}>
-                  {report.propositionType}
+                  {report.proposition_type}
                 </span>
                 <span className="text-sm text-zinc-500">
-                  Success: <strong className={report.successPercent >= 70 ? "text-green-600" : report.successPercent >= 40 ? "text-amber-600" : "text-red-600"}>
-                    {report.successPercent}%
+                  Success: <strong className={report.success_percent >= 70 ? "text-green-600" : report.success_percent >= 40 ? "text-amber-600" : "text-red-600"}>
+                    {report.success_percent}%
                   </strong>
                 </span>
                 {report.intervene && (
@@ -61,36 +62,38 @@ export function ReportModal({ account, report, onClose }: ReportModalProps) {
                 <p className="text-sm leading-relaxed">{report.content}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                  <div className="text-zinc-500 text-xs mb-1">Users</div>
-                  <div className="font-semibold">{account.active_users_report.active_users} / {account.active_users_report.seat_limit}</div>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                  <div className="text-zinc-500 text-xs mb-1">Invoices</div>
-                  <div className="font-semibold">{account.invoicing_usage_report.monthly_invoices} / {account.invoicing_usage_report.invoice_limit}</div>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                  <div className="text-zinc-500 text-xs mb-1">Integrations</div>
-                  <div className="font-semibold">{account.integrations_usage_report.active_integrations} / {account.integrations_usage_report.integration_limit}</div>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                  <div className="text-zinc-500 text-xs mb-1">MRR</div>
-                  <div className="font-semibold">${account.budget_report.mrr.toLocaleString()}</div>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                  <div className="text-zinc-500 text-xs mb-1">Renewal</div>
-                  <div className={`font-semibold ${account.budget_report.renewal_in_days <= 30 ? "text-red-600" : ""}`}>
-                    {account.budget_report.renewal_in_days} days
+              {summary && (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                    <div className="text-zinc-500 text-xs mb-1">Users</div>
+                    <div className="font-semibold">{summary.active_users_report.active_users} / {summary.active_users_report.seat_limit}</div>
+                  </div>
+                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                    <div className="text-zinc-500 text-xs mb-1">Invoices</div>
+                    <div className="font-semibold">{summary.invoicing_usage_report.monthly_invoices} / {summary.invoicing_usage_report.invoice_limit}</div>
+                  </div>
+                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                    <div className="text-zinc-500 text-xs mb-1">Integrations</div>
+                    <div className="font-semibold">{summary.integrations_usage_report.active_integrations} / {summary.integrations_usage_report.integration_limit}</div>
+                  </div>
+                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                    <div className="text-zinc-500 text-xs mb-1">MRR</div>
+                    <div className="font-semibold">${summary.budget_report.mrr.toLocaleString()}</div>
+                  </div>
+                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                    <div className="text-zinc-500 text-xs mb-1">Renewal</div>
+                    <div className={`font-semibold ${summary.budget_report.renewal_in_days <= 30 ? "text-red-600" : ""}`}>
+                      {summary.budget_report.renewal_in_days} days
+                    </div>
+                  </div>
+                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
+                    <div className="text-zinc-500 text-xs mb-1">Payment</div>
+                    <div className={`font-semibold ${summary.budget_report.payment_status === "overdue" ? "text-red-600" : "text-green-600"}`}>
+                      {summary.budget_report.payment_status}
+                    </div>
                   </div>
                 </div>
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                  <div className="text-zinc-500 text-xs mb-1">Payment</div>
-                  <div className={`font-semibold ${account.budget_report.payment_status === "overdue" ? "text-red-600" : "text-green-600"}`}>
-                    {account.budget_report.payment_status}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
