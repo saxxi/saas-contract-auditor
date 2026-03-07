@@ -52,3 +52,8 @@ Left side:
   - each line should be a bullet point, no fillers, be succint eg. "- we decided to use library X as we first tried library Y but found difficulties in doing [...]" or `- when testing if a python feature works use script scripts/script.py`
 - Always generate and update plans in `docs/plans` before writing any code
 - use `docs/material` folder as source
+
+# WHEN SESSION IS CONCLUDED
+
+- cleanup `docs/lessons_learned` (remove what will never be useful in future)
+- Ensure `CLAUDE.md` small, concise, useful

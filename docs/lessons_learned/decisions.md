@@ -12,3 +12,10 @@
 - Agent system prompt updated to understand contracts auditor context (upsell, renegotiation, churn risk)
 - `accountsById` memoized with `useMemo` since accounts data is static
 - Report modal scoped to canvas area (`absolute inset-0` within `relative` parent) instead of full page (`fixed inset-0`) so the chat panel remains visible and interactive during report viewing; removed the chat placeholder div from the modal
+- Prefer full RESTful approach: each action maps to a standard HTTP verb on a resource. Good: `PUT /invoices/123` -> `invoices_controller#update`. Bad: `POST /invoices/123/preview` -> `invoices_controller#preview`. Instead use a separate resource controller: `GET /invoices/123/preview` -> `invoices/preview_controller#show`
+- Accounts data stays as static FE data (Option A), not in agent state — avoids bloating state sync with 50 accounts. Agent receives account data via chat messages when needed
+- Selection merged with reports: an account is "selected" if it has an entry in `account_reports[]`. No separate `selectedIds` set
+- REST API is for data operations (reports), not for UI interaction state (selection, focus). Selection/focus lives in agent state
+- Report generation nested under accounts: `POST /api/accounts/:account_id/account_reports` (resource-oriented)
+- Batch generation at `POST /api/account_reports/batch` for generating reports for up to 50 selected accounts without reports
+- Using TanStack React Query (`@tanstack/react-query`) for REST data fetching — handles caching, loading states, cache invalidation. No manual useEffect/useState for server data
