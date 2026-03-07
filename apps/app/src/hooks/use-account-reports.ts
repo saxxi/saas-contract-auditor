@@ -22,6 +22,23 @@ export function useAccountReport(id: string | null) {
   });
 }
 
+export function useUpdateReportContent() {
+  const queryClient = useQueryClient();
+  return useMutation<Report, Error, { reportId: string; content: string }>({
+    mutationFn: async ({ reportId, content }) => {
+      const res = await fetch(`/api/account_reports/${reportId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["account-reports"] });
+    },
+  });
+}
+
 export function useGenerateReport() {
   const queryClient = useQueryClient();
   return useMutation<Report, Error, string>({

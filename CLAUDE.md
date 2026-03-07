@@ -50,7 +50,7 @@ Left side:
 
 - Always read and keep updated `docs/lessons_learned` so we know why we took a decision instead of another.
   - each line should be a bullet point, no fillers, be succint eg. "- we decided to use library X as we first tried library Y but found difficulties in doing [...]" or `- when testing if a python feature works use script scripts/script.py`
-- Always generate and update plans in `docs/plans` before writing any code
+- **MANDATORY**: Before writing any code for a significant change (new feature, new dependency, schema change, architectural change), FIRST create or update a plan in `docs/plans`. No exceptions. Small bug fixes and cosmetic tweaks are exempt
 - use `docs/material` folder as source
 
 # WHEN SESSION IS CONCLUDED

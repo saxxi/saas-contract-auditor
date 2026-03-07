@@ -1,3 +1,4 @@
+- TipTap (`@tiptap/react` + `@tiptap/starter-kit`) chosen for rich text editing — lightweight, great React/Tailwind integration, ProseMirror-based
 - Frontend-first approach: hardcode account data in FE, backend integration comes later
 - Report modal scoped to canvas area (`absolute inset-0` within `relative` parent) so the chat panel remains visible
 - Prefer full RESTful approach: each action maps to a standard HTTP verb on a resource. Use separate resource controllers instead of custom actions

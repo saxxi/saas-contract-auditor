@@ -121,6 +121,16 @@ export async function createReport(accountId: string): Promise<Report | null> {
   return report;
 }
 
+export async function updateReportContent(reportId: string, content: string): Promise<Report | undefined> {
+  const now = new Date().toISOString();
+  await db
+    .update(reportsTable)
+    .set({ content, updated_at: now })
+    .where(eq(reportsTable.id, reportId));
+  const rows = await db.select().from(reportsTable).where(eq(reportsTable.id, reportId));
+  return rows[0] as Report | undefined;
+}
+
 export async function createReports(accountIds: string[]): Promise<Report[]> {
   const created: Report[] = [];
   for (const id of accountIds.slice(0, 5)) {
