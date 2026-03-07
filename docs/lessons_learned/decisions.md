@@ -1,0 +1,9 @@
+- Frontend-first approach: hardcode account data in FE, backend integration comes later
+- Account selection state is local React state for now; will move to agent state later (tracking selected + focused account)
+- Report generation is mock/instant for now; will call agent later
+- Report view uses a modal/dialog overlay (not page replacement)
+- Chat integration with report context is deferred (no agent interaction when viewing a report yet)
+- Layout: chat always on the right, accounts on the left; removed the chat/app mode toggle from the original demo
+- Deleted all todo demo components (example-canvas, example-layout, generative-ui hooks) as they are not needed
+- Using Tailwind + shadcn/ui for styling
+- CLAUDE.md had a typo: `docs/lesson_learned` -> `docs/lessons_learned` (fixed)
