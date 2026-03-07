@@ -1,24 +1,15 @@
 "use client";
 
-import { ExampleLayout } from "@/components/example-layout";
-import { ExampleCanvas } from "@/components/example-canvas";
-import { useGenerativeUIExamples, useExampleSuggestions } from "@/hooks";
+import { AppLayout } from "@/components/app-layout";
+import { ContractsCanvas } from "@/components/contracts/contracts-canvas";
 
 import { CopilotChat } from "@copilotkit/react-core/v2";
-// import { HeadlessChat } from "@/components/headless-chat";
 
 export default function HomePage() {
-  // 🪁 Generative UI Examples
-  useGenerativeUIExamples();
-
-  // 🪁 Example Suggestions
-  useExampleSuggestions();
-
   return (
-    <ExampleLayout
+    <AppLayout
       chatContent={<CopilotChat />}
-      // chatContent={<HeadlessChat />}
-      appContent={<ExampleCanvas />}
+      appContent={<ContractsCanvas />}
     />
   );
 }

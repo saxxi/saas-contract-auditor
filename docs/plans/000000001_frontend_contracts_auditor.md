@@ -104,9 +104,27 @@ Replace the todo-list demo UI with a Contracts Auditor interface. Frontend-only,
 - Create mock report generation (random proposition type, % success, intervene flag)
 - Build ReportModal with mock content
 
+### Phase 4 - Find Opportunities (Agent Integration)
+- Add "Find Opportunities" button to AccountsTable (lower table)
+- On click: sends unselected accounts data as a message to the agent via CopilotKit chat
+- Agent analyzes accounts for upsell, negotiation, churn risk based on usage/limits/renewal
+- Register `select_accounts` frontend tool so the agent can select accounts from the chat
+- Update Python agent system prompt to understand contracts auditor context
+- Agent responds in chat with reasoning and calls `select_accounts` to move top opportunities to selected table
+
+#### Frontend changes
+- `contracts-canvas.tsx`: add `useAgent()` + `useFrontendTool("select_accounts", ...)` to let agent select accounts
+- `accounts-table.tsx`: add `onFindOpportunities` prop, render "Find Opportunities" button in header
+- Loading state while agent is running
+
+#### Agent changes
+- `apps/agent/main.py`: update system prompt for contracts auditor context
+- `apps/agent/src/todos.py`: replace todo state/tools with contracts state schema (keep file, rename later)
+
 ## Notes
 
 - All state is local React state for now; will move to agent state later
 - Account data is static; will come from agent/backend later
 - Report generation is instant mock; will call agent later
 - Chat integration with report context is deferred
+- "Find Opportunities" is the first agent integration point - agent receives account data via chat message and can select accounts via frontend tool
