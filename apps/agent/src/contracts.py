@@ -10,7 +10,7 @@ from langgraph.types import Command
 from typing import TypedDict, Literal
 
 from src.prompts import REPORT_UPDATE_PROMPT
-from src.report_graph import build_report_graph, _parse_report_metadata, _extract_report_body
+from src.report_graph import build_report_graph, _parse_report_metadata, _extract_report_body, analyze_account, _fetch_historical_deals
 from src.opportunities_graph import build_opportunities_graph
 
 API_BASE = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
@@ -35,6 +35,7 @@ class AgentState(BaseAgentState):
     focused_account_id: str | None
     report_manually_edited: bool
     report_latest_content: str | None
+    demo_report: Report | None
 
 
 @tool
@@ -275,6 +276,61 @@ async def find_opportunities(account_ids: list[str], runtime: ToolRuntime) -> Co
     })
 
 
+def _raw_json_to_summary(data: dict) -> dict:
+    """Transform landing page JSON shape -> AccountSummary dict."""
+    return {
+        "id": "DEMO",
+        "name": data.get("account", "Demo Account"),
+        "active_users_report": {
+            "active_users": data.get("usage", {}).get("active_users", 0),
+            "seat_limit": data.get("usage", {}).get("seat_limit", 100),
+        },
+        "invoicing_usage_report": {
+            "monthly_invoices": data.get("usage", {}).get("monthly_invoices", 0),
+            "invoice_limit": data.get("usage", {}).get("invoice_limit", 500),
+        },
+        "integrations_usage_report": {
+            "active_integrations": data.get("usage", {}).get("active_integrations", 0),
+            "integration_limit": data.get("usage", {}).get("integration_limit", 10),
+        },
+        "budget_report": data.get("contract", {}),
+    }
+
+
+@tool
+async def analyze_raw_data(account_data_json: str, runtime: ToolRuntime) -> Command:
+    """
+    Generate a report from raw account JSON data (no DB lookup).
+    Used for the landing page demo where users paste arbitrary data.
+    Accepts a JSON string with account, contract, usage, and history fields.
+    """
+    try:
+        data = json.loads(account_data_json)
+    except json.JSONDecodeError as e:
+        return Command(update={
+            "messages": [
+                ToolMessage(
+                    content=f"Invalid JSON: {e}",
+                    tool_call_id=runtime.tool_call_id,
+                )
+            ]
+        })
+
+    summary = _raw_json_to_summary(data)
+    all_deals = await _fetch_historical_deals()
+    result = await analyze_account(summary, all_deals)
+
+    return Command(update={
+        "demo_report": result,
+        "messages": [
+            ToolMessage(
+                content=f"Report generated for {data.get('account', 'Demo Account')}! The report is now displayed.",
+                tool_call_id=runtime.tool_call_id,
+            )
+        ],
+    })
+
+
 contracts_tools = [
     select_accounts,
     find_opportunities,
@@ -282,4 +338,5 @@ contracts_tools = [
     generate_reports,
     get_report_content,
     update_report,
+    analyze_raw_data,
 ]

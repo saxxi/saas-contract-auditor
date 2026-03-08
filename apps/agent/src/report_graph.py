@@ -167,6 +167,41 @@ def fan_out(state: ReportGraphState) -> list[Send]:
     ]
 
 
+async def analyze_account(summary: dict, deals: list[dict]) -> dict:
+    """
+    Pure analysis: takes account summary + historical deals, returns report.
+    Doesn't know or care where the data came from.
+    Returns: { content: str, proposition_type: str, success_percent: int, intervene: bool }
+    """
+    relevant_deals = _filter_relevant_deals(deals, summary)
+
+    # Pass 1: analytical report
+    prompt = REPORT_ANALYZER_PROMPT.format(
+        account_data=json.dumps(summary, indent=2),
+        historical_deals=json.dumps(relevant_deals, indent=2),
+    )
+    model = ChatOpenAI(model=MODEL_NAME)
+    response = await model.ainvoke(prompt)
+    llm_text = response.content
+
+    metadata = _parse_report_metadata(llm_text)
+    report_body_md = _extract_report_body(llm_text)
+
+    # Pass 2: sales script
+    script_prompt = SALES_SCRIPT_PROMPT.format(
+        report_content=report_body_md,
+        account_data=json.dumps(summary, indent=2),
+        proposition_type=metadata["proposition_type"],
+    )
+    script_response = await model.ainvoke(script_prompt)
+    report_body_md = report_body_md + "\n\n---\n\n" + script_response.content.strip()
+
+    return {
+        "content": report_body_md,
+        **metadata,
+    }
+
+
 async def process_account(state: ProcessAccountState) -> dict:
     """
     Process a single account: fetch data, analyze with LLM, save report.
@@ -182,37 +217,18 @@ async def process_account(state: ProcessAccountState) -> dict:
             "errors": [f"Could not fetch data for account {account_id}"],
         }
 
-    # 2. Fetch and filter historical deals
+    # 2. Fetch historical deals
     all_deals = await _fetch_historical_deals()
-    relevant_deals = _filter_relevant_deals(all_deals, summary)
 
-    # 3. LLM analysis
-    prompt = REPORT_ANALYZER_PROMPT.format(
-        account_data=json.dumps(summary, indent=2),
-        historical_deals=json.dumps(relevant_deals, indent=2),
-    )
-    model = ChatOpenAI(model=MODEL_NAME)
-    response = await model.ainvoke(prompt)
-    llm_text = response.content
+    # 3. Run pure analysis
+    result = await analyze_account(summary, all_deals)
 
-    # 4. Parse metadata and body
-    metadata = _parse_report_metadata(llm_text)
-    report_body_md = _extract_report_body(llm_text)
-
-    # 4.5 Generate sales script (second LLM pass)
-    script_prompt = SALES_SCRIPT_PROMPT.format(
-        report_content=report_body_md,
-        account_data=json.dumps(summary, indent=2),
-        proposition_type=metadata["proposition_type"],
-    )
-    script_response = await model.ainvoke(script_prompt)
-    script_md = script_response.content.strip()
-
-    # 4.6 Concatenate script to report body
-    report_body_md = report_body_md + "\n\n---\n\n" + script_md
-
-    # 5. Save via API (raw markdown)
-    saved = await _save_report(account_id, report_body_md, metadata)
+    # 4. Save via API (raw markdown)
+    saved = await _save_report(account_id, result["content"], {
+        "proposition_type": result["proposition_type"],
+        "success_percent": result["success_percent"],
+        "intervene": result["intervene"],
+    })
     if not saved:
         return {
             "results": [],
