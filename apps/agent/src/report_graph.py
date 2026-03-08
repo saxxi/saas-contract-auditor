@@ -15,7 +15,7 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
 
 from src.cache import cache_get, cache_set
-from src.prompts import REPORT_ANALYZER_PROMPT
+from src.prompts import REPORT_ANALYZER_PROMPT, SALES_SCRIPT_PROMPT
 
 API_BASE = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
 MODEL_NAME = os.getenv("REPORT_MODEL", "gpt-5-mini")
@@ -198,6 +198,18 @@ async def process_account(state: ProcessAccountState) -> dict:
     # 4. Parse metadata and body
     metadata = _parse_report_metadata(llm_text)
     report_body_md = _extract_report_body(llm_text)
+
+    # 4.5 Generate sales script (second LLM pass)
+    script_prompt = SALES_SCRIPT_PROMPT.format(
+        report_content=report_body_md,
+        account_data=json.dumps(summary, indent=2),
+        proposition_type=metadata["proposition_type"],
+    )
+    script_response = await model.ainvoke(script_prompt)
+    script_md = script_response.content.strip()
+
+    # 4.6 Concatenate script to report body
+    report_body_md = report_body_md + "\n\n---\n\n" + script_md
 
     # 5. Save via API (raw markdown)
     saved = await _save_report(account_id, report_body_md, metadata)

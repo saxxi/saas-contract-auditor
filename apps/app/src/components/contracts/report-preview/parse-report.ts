@@ -178,3 +178,38 @@ export function parseEvidence(body: string): EvidenceItem[] {
   }
   return items;
 }
+
+export interface ObjectionHandler {
+  objection: string;
+  rebuttal: string;
+}
+
+export function parseObjectionHandlers(body: string): ObjectionHandler[] {
+  const items: ObjectionHandler[] = [];
+  const lines = body.split("\n");
+  let currentObjection = "";
+  let currentRebuttal: string[] = [];
+
+  const flush = () => {
+    if (currentObjection) {
+      items.push({
+        objection: currentObjection,
+        rebuttal: currentRebuttal.join(" ").trim(),
+      });
+    }
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const objMatch = trimmed.match(/^\*\*"(.+?)"\*\*$/);
+    if (objMatch) {
+      flush();
+      currentObjection = objMatch[1];
+      currentRebuttal = [];
+    } else if (trimmed && currentObjection) {
+      currentRebuttal.push(trimmed);
+    }
+  }
+  flush();
+  return items;
+}

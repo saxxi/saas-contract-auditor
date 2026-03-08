@@ -38,7 +38,7 @@ export function BarComparisonChart({ metrics, color }: BarComparisonChartProps) 
       value,
       limit,
       pct,
-      overflow: value > limit,
+      isOverLimit: value > limit,
     };
   });
 
@@ -65,7 +65,7 @@ export function BarComparisonChart({ metrics, color }: BarComparisonChartProps) 
           <Bar dataKey="limit" fill="#e5e7eb" radius={[0, 4, 4, 0]} barSize={16} />
           <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={16}>
             {data.map((entry, i) => (
-              <Cell key={i} fill={entry.overflow ? "#dc2626" : hex} />
+              <Cell key={i} fill={entry.isOverLimit ? "#dc2626" : hex} />
             ))}
           </Bar>
           <ReferenceLine x={0} stroke="transparent" />

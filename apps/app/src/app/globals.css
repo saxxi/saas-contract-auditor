@@ -41,3 +41,26 @@ body,
 html {
   height: 100%;
 }
+
+/* Print styles: only show report content */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  [data-report-print],
+  [data-report-print] * {
+    visibility: visible;
+  }
+  [data-report-print] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 20px 40px;
+  }
+  /* Remove dark mode backgrounds and ensure readable print colors */
+  [data-report-print] [class*="dark:"] {
+    color: #1a1a1a;
+    background: transparent;
+  }
+}

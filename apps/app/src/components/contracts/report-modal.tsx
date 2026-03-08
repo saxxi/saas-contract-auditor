@@ -107,6 +107,10 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
     };
   }, []);
 
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+
   const renewalUrgent = summary ? summary.budget_report.renewal_in_days <= 30 : false;
   const paymentOverdue = summary?.budget_report.payment_status === "overdue";
 
@@ -149,6 +153,13 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
           <div className="flex items-center gap-3">
             {saveStatus === "saving" && <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Saving...</span>}
             {saveStatus === "saved" && <span className="text-[10px] text-emerald-500 uppercase tracking-wider">Saved</span>}
+            <button
+              onClick={handlePrint}
+              className="text-[10px] uppercase tracking-wider px-2 py-1 rounded cursor-pointer text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              title="Print / Save as PDF"
+            >
+              PDF
+            </button>
             <button
               onClick={() => setMode(mode === "raw" ? "preview" : "raw")}
               className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded cursor-pointer transition-colors ${
@@ -209,7 +220,7 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
         )}
 
         {/* Report content */}
-        <div className={`flex-1 min-h-0 ${mode === "raw" ? "overflow-hidden" : "overflow-y-auto"}`} data-color-mode={isDark ? "dark" : "light"}>
+        <div className={`flex-1 min-h-0 ${mode === "raw" ? "overflow-hidden" : "overflow-y-auto"}`} data-color-mode={isDark ? "dark" : "light"} data-report-print>
           {mode === "raw" ? (
             <MDEditor
               value={content}

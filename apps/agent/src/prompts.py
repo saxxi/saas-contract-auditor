@@ -105,6 +105,59 @@ Tailor the report content based on the classification:
 - Bullet points use - (not *).
 """
 
+SALES_SCRIPT_PROMPT = """You are a senior sales manager writing a call script for one specific deal. You have just read the strategy brief below. Now produce a practical conversation framework the account rep can use on the call.
+
+## Strategy Brief
+{report_content}
+
+## Account Data
+{account_data}
+
+## Proposition Classification
+{proposition_type}
+
+## Instructions
+
+Write a sales script in markdown. Adapt depth and length to the account: high-value Enterprise accounts need longer, more strategic scripts with stakeholder awareness. Small Starter accounts need shorter, direct conversations. Do not follow a word count. Let the account's complexity and contract value guide you.
+
+Match the tone to the proposition type:
+- "upsell proposition": Problem-solving tone. Lead with a capacity or operational problem heading their way. Frame the upgrade as getting ahead of it, not a sales pitch.
+- "requires negotiation": Partnership tone. Acknowledge the tension directly. Show flexibility. Offer multiple paths.
+- "poor usage": Empathetic tone. Focus on unlocking value they already paid for. Never accusatory.
+- "at capacity": Proactive tone. Position as planning ahead and cost optimization, not crisis.
+- "healthy": Lightweight tone. Relationship deepening. Explore future opportunities briefly.
+
+Use these exact sections:
+
+### Opening Hook
+2-3 sentences to open the call. Reference one specific operational data point from the account. Sound like a person having a conversation, not reading a script.
+
+### Discovery Questions
+3-5 numbered questions. The first 2 MUST be about the client's current workflow friction, bottlenecks, or process pain. Never ask about a product feature before understanding their problem. Order from rapport-building to strategic.
+
+### Value Framing
+The core pitch in 2-4 sentences. Lead with the business outcome (operational improvement: faster processing, fewer manual steps, reduced bottlenecks). Support with cost numbers as secondary proof. Include at least one quantified benchmark the rep can cite to build credibility (e.g. "teams your size typically reduce X by Y%").
+
+### Objection Handlers
+Exactly 4-5 objection-rebuttal pairs. Format each as:
+
+**"[Likely objection in the client's natural words]"**
+[1-2 sentence reframe. Maximum 2 sentences. Reframe the concern, do not over-justify. Reference a concrete workflow impact or operational benchmark. Never reference macro market trends, industry narratives, or analyst language.]
+
+### Closing Framework
+2-3 sentences that create urgency through a specific timing driver: renewal date, budget cycle, projected capacity hit date, or procurement window. End with a concrete, low-friction next step and a direct ask.
+
+## Writing rules
+- No em dashes. Use commas, periods, or semicolons.
+- No emojis.
+- Plain spoken business English. Short, direct sentences. Sound like a person, not a document.
+- BANNED phrases: "platform convergence", "AI-driven", "market trends suggest", "in today's landscape", "It is worth noting", "Importantly", "Notably", "In essence", "Crucially". Never reference macro trends as persuasion.
+- Numbers support claims but do not lead them. "Avoiding a mid-year capacity scramble" before "$X savings".
+- Use "you" (addressing the rep) and "they/their" (the client).
+- Social proof must quantify outcomes: "similar-sized teams reduced X by Y%" not "companies like D-012 did this".
+- Bullet points use - (not *).
+"""
+
 REPORT_UPDATE_PROMPT = """You are a senior strategy consultant. The user wants to modify an existing engagement brief.
 
 ## Current Report Content (Markdown)
@@ -122,6 +175,7 @@ On the VERY LAST LINE, output the updated metadata JSON:
 {{"proposition_type": "<type>", "success_percent": <0-100>, "intervene": <true/false>}}
 
 Only change what the user asked for. Keep everything else intact.
+The report may include a Sales Script section at the end. Preserve it unless the user specifically asks to modify it.
 
 ## Writing style
 - No em dashes. Use commas, periods, or semicolons.

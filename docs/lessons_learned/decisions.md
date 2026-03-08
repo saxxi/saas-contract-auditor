@@ -51,3 +51,4 @@
 - Agent `select_accounts` is low-risk — system prompt explicitly says no confirmation needed. When user requests N accounts, select exactly N
 - Split button pattern for batch sizes (5/10/20/50/100/200) — default small batch, user can scale up. Keeps LLM analysis fast
 - "Generate reports for selected" always regenerates for all selected accounts, not just those missing reports
+- Sales script generation uses two-pass LLM: Pass 1 generates analytical report, Pass 2 generates sales script using report as context. Both inline in `process_account` node (no separate graph node needed since script depends on report output and parallelism is already at account level via Send()). Script markdown concatenated to report body before saving — same DB row, same modal

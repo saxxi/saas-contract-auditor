@@ -10,9 +10,11 @@ import {
   parseRisks,
   parseNextSteps,
   parseEvidence,
+  parseObjectionHandlers,
   replaceSectionBody,
   type ParsedSection,
 } from "./parse-report";
+import { ObjectionCard } from "./objection-card";
 import { reportThemes, type ReportTheme } from "./theme-config";
 import { SectionHeader } from "./section-header";
 import { UtilizationGauge } from "./utilization-gauge";
@@ -55,9 +57,15 @@ export function ReportPreview({ content, propositionType, successPercent, editab
   const risks = findSection("risk");
   const nextSteps = findSection("next steps");
   const keyQuestion = findSection("key question");
+  const openingHook = findSection("opening hook");
+  const discoveryQuestions = findSection("discovery questions");
+  const valueFraming = findSection("value framing");
+  const objectionHandlers = findSection("objection handlers");
+  const closingFramework = findSection("closing framework");
 
   const knownHeadings = new Set(
-    [situation, complication, resolution, keyMetrics, evidence, risks, nextSteps, keyQuestion]
+    [situation, complication, resolution, keyMetrics, evidence, risks, nextSteps, keyQuestion,
+     openingHook, discoveryQuestions, valueFraming, objectionHandlers, closingFramework]
       .filter(Boolean)
       .map((s) => s!.heading)
   );
@@ -71,6 +79,8 @@ export function ReportPreview({ content, propositionType, successPercent, editab
   const riskRows = risks?.table ? parseRisks(risks.table) : [];
   const steps = nextSteps?.table ? parseNextSteps(nextSteps.table) : [];
   const evidenceItems = evidence ? parseEvidence(evidence.body) : [];
+  const objectionItems = objectionHandlers ? parseObjectionHandlers(objectionHandlers.body) : [];
+  const hasScript = !!(openingHook || discoveryQuestions || valueFraming || objectionHandlers || closingFramework);
 
   const utilizationMetrics = metrics.filter(
     (m) => m.utilization && m.utilization !== "--" && m.utilization.includes("%")
@@ -287,6 +297,112 @@ export function ReportPreview({ content, propositionType, successPercent, editab
             <div>
               <SectionHeader title="Key Question" themeColor={theme.accent} />
               <KeyQuestion text={questionText} themeColor={theme.accent} />
+            </div>
+          ))}
+        </div>
+      ) : null,
+
+    "sales-script-divider": () =>
+      hasScript ? (
+        <div key="sales-script-divider" className="pt-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-600" />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-400 dark:text-zinc-500 font-semibold">
+              Sales Script
+            </span>
+            <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-600" />
+          </div>
+        </div>
+      ) : null,
+
+    "opening-hook": () =>
+      openingHook ? (
+        <div key="opening-hook">
+          {wrapEditable(openingHook.heading, openingHook, (
+            <div>
+              <SectionHeader title="Opening Hook" themeColor={theme.accent} />
+              <div className="bg-zinc-50 dark:bg-zinc-800/40 rounded-lg px-5 py-4 border border-zinc-200 dark:border-zinc-700">
+                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed italic font-serif">
+                  {openingHook.body}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null,
+
+    "discovery-questions": () =>
+      discoveryQuestions ? (
+        <div key="discovery-questions">
+          {wrapEditable(discoveryQuestions.heading, discoveryQuestions, (
+            <div>
+              <SectionHeader title="Discovery Questions" themeColor={theme.accent} />
+              <ol className="space-y-2 list-decimal list-inside">
+                {discoveryQuestions.body
+                  .split("\n")
+                  .filter((l) => l.trim().match(/^\d+\.\s/))
+                  .map((l, i) => (
+                    <li key={i} className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed pl-1">
+                      {l.replace(/^\d+\.\s*/, "")}
+                    </li>
+                  ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      ) : null,
+
+    "value-framing": () =>
+      valueFraming ? (
+        <div key="value-framing">
+          {wrapEditable(valueFraming.heading, valueFraming, (
+            <div>
+              <SectionHeader title="Value Framing" themeColor={theme.accent} />
+              <div className={`bg-zinc-50 dark:bg-zinc-800/40 border-l-4 ${
+                {
+                  "red-500": "border-red-500 dark:border-red-400",
+                  "blue-500": "border-blue-500 dark:border-blue-400",
+                  "amber-500": "border-amber-500 dark:border-amber-400",
+                  "orange-500": "border-orange-500 dark:border-orange-400",
+                  "emerald-500": "border-emerald-500 dark:border-emerald-400",
+                }[theme.accent] ?? "border-zinc-400"
+              } rounded-r-lg px-5 py-4`}>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                  {valueFraming.body}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null,
+
+    "objection-handlers": () =>
+      objectionItems.length > 0 ? (
+        <div key="objection-handlers">
+          {wrapEditable(objectionHandlers!.heading, objectionHandlers, (
+            <div>
+              <SectionHeader title="Objection Handlers" themeColor={theme.accent} />
+              <div className="space-y-2">
+                {objectionItems.map((item, i) => (
+                  <ObjectionCard key={i} item={item} themeColor={theme.accent} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null,
+
+    "closing-framework": () =>
+      closingFramework ? (
+        <div key="closing-framework">
+          {wrapEditable(closingFramework.heading, closingFramework, (
+            <div>
+              <SectionHeader title="Closing Framework" themeColor={theme.accent} />
+              <div className="bg-zinc-50 dark:bg-zinc-800/40 rounded-lg px-5 py-4 border border-zinc-200 dark:border-zinc-700">
+                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                  {closingFramework.body}
+                </p>
+              </div>
             </div>
           ))}
         </div>

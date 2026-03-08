@@ -22,7 +22,7 @@ export const reportThemes: Record<PropositionType, ReportTheme> = {
     accent: "red-500",
     muted: "red-50",
     bannerGradient: "from-red-600 to-red-700",
-    sectionOrder: ["executive-summary", "risks", "action-callout", "resolution", "metrics", "evidence", "next-steps", "key-question"],
+    sectionOrder: ["executive-summary", "risks", "action-callout", "resolution", "metrics", "evidence", "next-steps", "key-question", "sales-script-divider", "opening-hook", "discovery-questions", "value-framing", "objection-handlers", "closing-framework"],
     heroChart: "bar-comparison",
     actionCallout: {
       label: "Immediate Intervention Required",
@@ -37,7 +37,7 @@ export const reportThemes: Record<PropositionType, ReportTheme> = {
     accent: "blue-500",
     muted: "blue-50",
     bannerGradient: "from-blue-600 to-blue-700",
-    sectionOrder: ["executive-summary", "action-callout", "resolution", "metrics", "evidence", "risks", "next-steps", "key-question"],
+    sectionOrder: ["executive-summary", "action-callout", "resolution", "metrics", "evidence", "risks", "next-steps", "key-question", "sales-script-divider", "opening-hook", "discovery-questions", "value-framing", "objection-handlers", "closing-framework"],
     heroChart: "bar-comparison",
     actionCallout: {
       label: "Revenue Opportunity",
@@ -52,7 +52,7 @@ export const reportThemes: Record<PropositionType, ReportTheme> = {
     accent: "amber-500",
     muted: "amber-50",
     bannerGradient: "from-amber-500 to-amber-600",
-    sectionOrder: ["executive-summary", "action-callout", "metrics", "resolution", "evidence", "risks", "next-steps", "key-question"],
+    sectionOrder: ["executive-summary", "action-callout", "metrics", "resolution", "evidence", "risks", "next-steps", "key-question", "sales-script-divider", "opening-hook", "discovery-questions", "value-framing", "objection-handlers", "closing-framework"],
     heroChart: "usage-trend",
     actionCallout: {
       label: "Engagement At Risk",
@@ -67,7 +67,7 @@ export const reportThemes: Record<PropositionType, ReportTheme> = {
     accent: "orange-500",
     muted: "orange-50",
     bannerGradient: "from-orange-500 to-orange-600",
-    sectionOrder: ["executive-summary", "action-callout", "metrics", "resolution", "evidence", "risks", "next-steps", "key-question"],
+    sectionOrder: ["executive-summary", "action-callout", "metrics", "resolution", "evidence", "risks", "next-steps", "key-question", "sales-script-divider", "opening-hook", "discovery-questions", "value-framing", "objection-handlers", "closing-framework"],
     heroChart: "capacity-radial",
     actionCallout: {
       label: "Capacity Threshold Approaching",
@@ -82,7 +82,7 @@ export const reportThemes: Record<PropositionType, ReportTheme> = {
     accent: "emerald-500",
     muted: "emerald-50",
     bannerGradient: "from-emerald-600 to-emerald-700",
-    sectionOrder: ["executive-summary", "resolution", "metrics", "evidence", "risks", "next-steps", "key-question"],
+    sectionOrder: ["executive-summary", "resolution", "metrics", "evidence", "risks", "next-steps", "key-question", "sales-script-divider", "opening-hook", "discovery-questions", "value-framing", "objection-handlers", "closing-framework"],
     heroChart: "stat-cards",
     actionCallout: null,
   },
