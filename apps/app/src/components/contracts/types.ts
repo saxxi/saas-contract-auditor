@@ -3,12 +3,18 @@ export interface Account {
   name: string;
 }
 
+export interface UsageMetric {
+  metric_name: string;
+  current_value: number;
+  limit_value: number;
+  unit: string | null;
+}
+
 export interface AccountSummary {
   id: string;
-  active_users_report: { active_users: number; seat_limit: number };
-  invoicing_usage_report: { monthly_invoices: number; invoice_limit: number };
-  integrations_usage_report: { active_integrations: number; integration_limit: number };
+  usage_metrics: UsageMetric[];
   budget_report: { mrr: number; contract_value: number; tier: string; renewal_in_days: number; payment_status: string };
+  context: string | null;
 }
 
 export type PropositionType =
@@ -22,8 +28,11 @@ export interface Report {
   id: string;
   account_id: string;
   proposition_type: PropositionType;
+  strategic_bucket: string | null;
   success_percent: number;
   intervene: boolean;
+  priority_score: number | null;
+  score_rationale: string | null;
   content: string;
   generated_at: string;
   created_at: string;

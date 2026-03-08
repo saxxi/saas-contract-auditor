@@ -20,7 +20,7 @@ export async function PUT(
   const { id } = await params;
   const body = await request.json();
   const metadata = body.proposition_type
-    ? { proposition_type: body.proposition_type, success_percent: body.success_percent, intervene: body.intervene }
+    ? { proposition_type: body.proposition_type, strategic_bucket: body.strategic_bucket, success_percent: body.success_percent, intervene: body.intervene, priority_score: body.priority_score, score_rationale: body.score_rationale }
     : undefined;
   const report = await updateReportContent(id, body.content, metadata);
   if (!report) {

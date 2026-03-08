@@ -1,47 +1,29 @@
-import { pgTable, text, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, numeric, unique } from "drizzle-orm/pg-core";
 
 export const accounts = pgTable("accounts", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  context: text("context"),
   created_at: text("created_at").notNull(),
   updated_at: text("updated_at").notNull(),
 });
 
-export const accountActiveUsers = pgTable("account_active_users", {
-  id: text("id").primaryKey(),
-  account_id: text("account_id")
-    .notNull()
-    .unique()
-    .references(() => accounts.id),
-  active_users: integer("active_users").notNull(),
-  seat_limit: integer("seat_limit").notNull(),
-  created_at: text("created_at").notNull(),
-  updated_at: text("updated_at").notNull(),
-});
-
-export const accountInvoicingUsages = pgTable("account_invoicing_usages", {
-  id: text("id").primaryKey(),
-  account_id: text("account_id")
-    .notNull()
-    .unique()
-    .references(() => accounts.id),
-  monthly_invoices: integer("monthly_invoices").notNull(),
-  invoice_limit: integer("invoice_limit").notNull(),
-  created_at: text("created_at").notNull(),
-  updated_at: text("updated_at").notNull(),
-});
-
-export const accountIntegrationsUsages = pgTable("account_integrations_usages", {
-  id: text("id").primaryKey(),
-  account_id: text("account_id")
-    .notNull()
-    .unique()
-    .references(() => accounts.id),
-  active_integrations: integer("active_integrations").notNull(),
-  integration_limit: integer("integration_limit").notNull(),
-  created_at: text("created_at").notNull(),
-  updated_at: text("updated_at").notNull(),
-});
+export const accountUsageMetrics = pgTable(
+  "account_usage_metrics",
+  {
+    id: text("id").primaryKey(),
+    account_id: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    metric_name: text("metric_name").notNull(),
+    current_value: numeric("current_value").notNull(),
+    limit_value: numeric("limit_value").notNull(),
+    unit: text("unit"),
+    created_at: text("created_at").notNull(),
+    updated_at: text("updated_at").notNull(),
+  },
+  (t) => [unique().on(t.account_id, t.metric_name)]
+);
 
 export const accountBudgets = pgTable("account_budgets", {
   id: text("id").primaryKey(),
@@ -83,8 +65,11 @@ export const reports = pgTable("reports", {
     .notNull()
     .references(() => accounts.id),
   proposition_type: text("proposition_type").notNull(),
+  strategic_bucket: text("strategic_bucket"),
   success_percent: integer("success_percent").notNull(),
   intervene: boolean("intervene").notNull(),
+  priority_score: integer("priority_score"),
+  score_rationale: text("score_rationale"),
   content: text("content").notNull(),
   generated_at: text("generated_at").notNull(),
   created_at: text("created_at").notNull(),

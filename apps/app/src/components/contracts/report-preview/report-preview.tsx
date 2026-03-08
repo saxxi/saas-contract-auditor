@@ -49,6 +49,7 @@ export function ReportPreview({ content, propositionType, successPercent, editab
   const findSection = (name: string) =>
     sections.find((s) => s.heading.toLowerCase().includes(name.toLowerCase()));
 
+  const executiveSummary = findSection("executive summary");
   const situation = findSection("situation");
   const complication = findSection("complication");
   const resolution = findSection("resolution");
@@ -64,7 +65,7 @@ export function ReportPreview({ content, propositionType, successPercent, editab
   const closingFramework = findSection("closing framework");
 
   const knownHeadings = new Set(
-    [situation, complication, resolution, keyMetrics, evidence, risks, nextSteps, keyQuestion,
+    [executiveSummary, situation, complication, resolution, keyMetrics, evidence, risks, nextSteps, keyQuestion,
      openingHook, discoveryQuestions, valueFraming, objectionHandlers, closingFramework]
       .filter(Boolean)
       .map((s) => s!.heading)
@@ -156,11 +157,18 @@ export function ReportPreview({ content, propositionType, successPercent, editab
   // Build section renderers keyed by section order slug
   const sectionRenderers: Record<string, () => React.ReactNode> = {
     "executive-summary": () =>
-      (situation || complication) ? (
+      (executiveSummary || situation || complication) ? (
         <div key="exec-summary">
-          {wrapEditable("exec-situation", situation, (
+          {wrapEditable("exec-situation", executiveSummary ?? situation, (
             <div>
               <SectionHeader title="Executive Summary" themeColor={theme.accent} />
+              {executiveSummary && (
+                <div className="mb-4 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+                  <div className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-serif prose prose-sm dark:prose-invert max-w-none">
+                    <Markdown>{executiveSummary.body}</Markdown>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {situation && (
                   <div className="border-l-2 border-zinc-300 dark:border-zinc-600 pl-4">
@@ -188,24 +196,32 @@ export function ReportPreview({ content, propositionType, successPercent, editab
       ) : null,
 
     resolution: () =>
-      resolutionOptions.length > 0 ? (
+      resolution ? (
         <div key="resolution">
-          {wrapEditable(resolution!.heading, resolution, (
+          {wrapEditable(resolution.heading, resolution, (
             <div>
               <SectionHeader title="Resolution" themeColor={theme.accent} />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {resolutionOptions.map((opt, i) => (
-                  <OptionCard
-                    key={i}
-                    option={opt}
-                    label={`Option ${String.fromCharCode(65 + i)}`}
-                    recommended={i === 0}
-                    themeColor={theme.primary}
-                  />
-                ))}
-              </div>
-              {resolutionText && (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3 italic font-serif">{resolutionText}</p>
+              {resolutionOptions.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {resolutionOptions.map((opt, i) => (
+                      <OptionCard
+                        key={i}
+                        option={opt}
+                        label={`Option ${String.fromCharCode(65 + i)}`}
+                        recommended={i === 0}
+                        themeColor={theme.primary}
+                      />
+                    ))}
+                  </div>
+                  {resolutionText && (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-3 italic font-serif">{resolutionText}</p>
+                  )}
+                </>
+              ) : (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <Markdown>{resolution.body}</Markdown>
+                </div>
               )}
             </div>
           ))}
@@ -213,78 +229,104 @@ export function ReportPreview({ content, propositionType, successPercent, editab
       ) : null,
 
     metrics: () =>
-      metrics.length > 0 ? (
+      keyMetrics ? (
         <div key="metrics">
-          {wrapEditable(keyMetrics!.heading, keyMetrics, (
+          {wrapEditable(keyMetrics.heading, keyMetrics, (
             <div>
               <SectionHeader title="Key Metrics" themeColor={theme.accent} />
-              {/* Hero chart */}
-              {renderHeroChart()}
-              <div className="flex flex-wrap items-start gap-6 mt-4">
-                {/* Utilization gauges (shown for stat-cards mode or as supplement) */}
-                {(theme.heroChart === "stat-cards" || theme.heroChart === "bar-comparison") && utilizationMetrics.length > 0 && (
-                  <div className="flex gap-4">
-                    {utilizationMetrics.map((m, i) => {
-                      const numVal = parseFloat(m.value.replace(/[^0-9.]/g, "")) || 0;
-                      const numLimit = parseFloat(m.limit.replace(/[^0-9.]/g, "")) || 100;
-                      return <UtilizationGauge key={i} value={numVal} max={numLimit} label={m.metric} />;
-                    })}
+              {metrics.length > 0 ? (
+                <>
+                  {/* Hero chart */}
+                  {renderHeroChart()}
+                  <div className="flex flex-wrap items-start gap-6 mt-4">
+                    {/* Utilization gauges (shown for stat-cards mode or as supplement) */}
+                    {(theme.heroChart === "stat-cards" || theme.heroChart === "bar-comparison") && utilizationMetrics.length > 0 && (
+                      <div className="flex gap-4">
+                        {utilizationMetrics.map((m, i) => {
+                          const numVal = parseFloat(m.value.replace(/[^0-9.]/g, "")) || 0;
+                          const numLimit = parseFloat(m.limit.replace(/[^0-9.]/g, "")) || 100;
+                          return <UtilizationGauge key={i} value={numVal} max={numLimit} label={m.metric} />;
+                        })}
+                      </div>
+                    )}
+                    {statusMetrics.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {statusMetrics.map((m, i) => (
+                          <StatCard
+                            key={i}
+                            label={m.metric}
+                            value={m.value}
+                            sub={m.limit !== "--" ? `Limit: ${m.limit}` : undefined}
+                            alert={m.metric.toLowerCase().includes("payment") && m.value.toLowerCase() === "overdue"}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-                {statusMetrics.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {statusMetrics.map((m, i) => (
-                      <StatCard
-                        key={i}
-                        label={m.metric}
-                        value={m.value}
-                        sub={m.limit !== "--" ? `Limit: ${m.limit}` : undefined}
-                        alert={m.metric.toLowerCase().includes("payment") && m.value.toLowerCase() === "overdue"}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+                </>
+              ) : (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <Markdown>{keyMetrics.body}</Markdown>
+                </div>
+              )}
             </div>
           ))}
         </div>
       ) : null,
 
     evidence: () =>
-      evidenceItems.length > 0 ? (
+      evidence ? (
         <div key="evidence">
-          {wrapEditable(evidence!.heading, evidence, (
+          {wrapEditable(evidence.heading, evidence, (
             <div>
               <SectionHeader title="Evidence from Similar Engagements" themeColor={theme.accent} />
-              <div className="space-y-2">
-                {evidenceItems.map((item, i) => (
-                  <EvidenceCard key={i} item={item} themeColor={theme.accent} />
-                ))}
-              </div>
+              {evidenceItems.length > 0 ? (
+                <div className="space-y-2">
+                  {evidenceItems.map((item, i) => (
+                    <EvidenceCard key={i} item={item} themeColor={theme.accent} />
+                  ))}
+                </div>
+              ) : (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <Markdown>{evidence.body}</Markdown>
+                </div>
+              )}
             </div>
           ))}
         </div>
       ) : null,
 
     risks: () =>
-      riskRows.length > 0 ? (
+      risks ? (
         <div key="risks">
-          {wrapEditable(risks!.heading, risks, (
+          {wrapEditable(risks.heading, risks, (
             <div>
               <SectionHeader title="Risks & Mitigants" themeColor={theme.accent} />
-              <RiskMatrix risks={riskRows} bold={propositionType === "requires negotiation"} />
+              {riskRows.length > 0 ? (
+                <RiskMatrix risks={riskRows} bold={propositionType === "requires negotiation"} />
+              ) : (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <Markdown>{risks.body}</Markdown>
+                </div>
+              )}
             </div>
           ))}
         </div>
       ) : null,
 
     "next-steps": () =>
-      steps.length > 0 ? (
+      nextSteps ? (
         <div key="next-steps">
-          {wrapEditable(nextSteps!.heading, nextSteps, (
+          {wrapEditable(nextSteps.heading, nextSteps, (
             <div>
               <SectionHeader title="Next Steps" themeColor={theme.accent} />
-              <TimelineSteps steps={steps} themeColor={theme.primary} />
+              {steps.length > 0 ? (
+                <TimelineSteps steps={steps} themeColor={theme.primary} />
+              ) : (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <Markdown>{nextSteps.body}</Markdown>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -77,7 +77,16 @@ export function LandingReportDialog({ accountName, report, onClose }: LandingRep
   );
 
   const handlePrint = useCallback(() => {
+    const source = document.querySelector("[data-report-print]");
+    if (!source) return;
+    const clone = source.cloneNode(true) as HTMLElement;
+    clone.id = "print-wrapper";
+    clone.removeAttribute("data-report-print");
+    document.body.appendChild(clone);
+    document.body.classList.add("printing");
     window.print();
+    document.body.classList.remove("printing");
+    clone.remove();
   }, []);
 
   return (

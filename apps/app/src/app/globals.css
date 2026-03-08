@@ -42,25 +42,50 @@ html {
   height: 100%;
 }
 
-/* Print styles: only show report content */
+/* Print styles: hide everything except the cloned print wrapper */
 @media print {
-  body * {
-    visibility: hidden;
+  body.printing > *:not(#print-wrapper) {
+    display: none !important;
   }
-  [data-report-print],
-  [data-report-print] * {
-    visibility: visible;
+  #print-wrapper {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    padding: 20px 40px !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
   }
-  [data-report-print] {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    padding: 20px 40px;
+  #print-wrapper *,
+  #print-wrapper table,
+  #print-wrapper div {
+    overflow: visible !important;
+    max-height: none !important;
+    break-inside: avoid-page;
   }
-  /* Remove dark mode backgrounds and ensure readable print colors */
-  [data-report-print] [class*="dark:"] {
-    color: #1a1a1a;
-    background: transparent;
+  #print-wrapper table {
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+  /* Light-mode colors for print */
+  #print-wrapper,
+  #print-wrapper * {
+    color: #1a1a1a !important;
+    background: transparent !important;
+    border-color: #d4d4d8 !important;
+  }
+  /* Keep badge/label colors readable */
+  #print-wrapper [class*="bg-red-"],
+  #print-wrapper [class*="bg-blue-"],
+  #print-wrapper [class*="bg-amber-"],
+  #print-wrapper [class*="bg-orange-"],
+  #print-wrapper [class*="bg-emerald-"] {
+    background: #e5e7eb !important;
+    color: #1a1a1a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  #print-wrapper h3 {
+    break-after: avoid;
   }
 }

@@ -122,6 +122,7 @@ export interface KeyMetric {
   value: string;
   limit: string;
   utilization: string;
+  headroom: string;
 }
 
 export function parseKeyMetrics(table: ParsedTable): KeyMetric[] {
@@ -130,6 +131,7 @@ export function parseKeyMetrics(table: ParsedTable): KeyMetric[] {
     value: row[1] ?? "",
     limit: row[2] ?? "",
     utilization: row[3] ?? "",
+    headroom: row[4] ?? "",
   }));
 }
 

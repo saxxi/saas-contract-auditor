@@ -4,9 +4,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
   accounts,
-  accountActiveUsers,
-  accountInvoicingUsages,
-  accountIntegrationsUsages,
+  accountUsageMetrics,
   accountBudgets,
   historicalDeals,
   reports,
@@ -31,50 +29,29 @@ async function seed() {
 
   console.log("Clearing existing data...");
   await db.delete(reports);
-  await db.delete(accountActiveUsers);
-  await db.delete(accountInvoicingUsages);
-  await db.delete(accountIntegrationsUsages);
+  await db.delete(accountUsageMetrics);
   await db.delete(accountBudgets);
   await db.delete(accounts);
   await db.delete(historicalDeals);
 
   console.log(`Seeding ${accountSeedData.length} accounts...`);
   await db.insert(accounts).values(
-    accountSeedData.map((a) => ({ id: a.id, name: a.name, ...timestamps() }))
+    accountSeedData.map((a) => ({ id: a.id, name: a.name, context: a.context, ...timestamps() }))
   );
 
-  console.log("Seeding account_active_users...");
-  await db.insert(accountActiveUsers).values(
-    accountSeedData.map((a) => ({
+  console.log("Seeding account_usage_metrics...");
+  const metricRows = accountSeedData.flatMap((a) =>
+    a.usage_metrics.map((m) => ({
       id: crypto.randomUUID(),
       account_id: a.id,
-      active_users: a.active_users_report.active_users,
-      seat_limit: a.active_users_report.seat_limit,
+      metric_name: m.metric_name,
+      current_value: String(m.current_value),
+      limit_value: String(m.limit_value),
+      unit: m.unit,
       ...timestamps(),
     }))
   );
-
-  console.log("Seeding account_invoicing_usages...");
-  await db.insert(accountInvoicingUsages).values(
-    accountSeedData.map((a) => ({
-      id: crypto.randomUUID(),
-      account_id: a.id,
-      monthly_invoices: a.invoicing_usage_report.monthly_invoices,
-      invoice_limit: a.invoicing_usage_report.invoice_limit,
-      ...timestamps(),
-    }))
-  );
-
-  console.log("Seeding account_integrations_usages...");
-  await db.insert(accountIntegrationsUsages).values(
-    accountSeedData.map((a) => ({
-      id: crypto.randomUUID(),
-      account_id: a.id,
-      active_integrations: a.integrations_usage_report.active_integrations,
-      integration_limit: a.integrations_usage_report.integration_limit,
-      ...timestamps(),
-    }))
-  );
+  await db.insert(accountUsageMetrics).values(metricRows);
 
   console.log("Seeding account_budgets...");
   await db.insert(accountBudgets).values(

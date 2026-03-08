@@ -108,7 +108,16 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
   }, []);
 
   const handlePrint = useCallback(() => {
+    const source = document.querySelector("[data-report-print]");
+    if (!source) return;
+    const clone = source.cloneNode(true) as HTMLElement;
+    clone.id = "print-wrapper";
+    clone.removeAttribute("data-report-print");
+    document.body.appendChild(clone);
+    document.body.classList.add("printing");
     window.print();
+    document.body.classList.remove("printing");
+    clone.remove();
   }, []);
 
   const renewalUrgent = summary ? summary.budget_report.renewal_in_days <= 30 : false;
@@ -198,21 +207,14 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
               alert={paymentOverdue}
             />
             <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700" />
-            <MetricCard
-              label="Users"
-              value={`${summary.active_users_report.active_users} / ${summary.active_users_report.seat_limit}`}
-              sub={utilPercent(summary.active_users_report.active_users, summary.active_users_report.seat_limit)}
-            />
-            <MetricCard
-              label="Invoices"
-              value={`${summary.invoicing_usage_report.monthly_invoices} / ${summary.invoicing_usage_report.invoice_limit}`}
-              sub={utilPercent(summary.invoicing_usage_report.monthly_invoices, summary.invoicing_usage_report.invoice_limit)}
-            />
-            <MetricCard
-              label="Integrations"
-              value={`${summary.integrations_usage_report.active_integrations} / ${summary.integrations_usage_report.integration_limit}`}
-              sub={utilPercent(summary.integrations_usage_report.active_integrations, summary.integrations_usage_report.integration_limit)}
-            />
+            {summary.usage_metrics.map((m) => (
+              <MetricCard
+                key={m.metric_name}
+                label={m.metric_name}
+                value={`${m.current_value} / ${m.limit_value}`}
+                sub={utilPercent(m.current_value, m.limit_value)}
+              />
+            ))}
             <div className="ml-auto text-[10px] text-zinc-400">
               Generated {new Date(report.generated_at).toLocaleDateString()}
             </div>

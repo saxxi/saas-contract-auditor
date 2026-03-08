@@ -116,12 +116,15 @@ def _parse_report_metadata(text: str) -> dict:
                 meta = json.loads(line)
                 return {
                     "proposition_type": meta.get("proposition_type", "healthy"),
+                    "strategic_bucket": meta.get("strategic_bucket", "Healthy Growth"),
                     "success_percent": int(meta.get("success_percent", 50)),
                     "intervene": bool(meta.get("intervene", False)),
+                    "priority_score": int(meta.get("priority_score", 5)),
+                    "score_rationale": str(meta.get("score_rationale", "")),
                 }
             except (json.JSONDecodeError, ValueError):
                 continue
-    return {"proposition_type": "healthy", "success_percent": 50, "intervene": False}
+    return {"proposition_type": "healthy", "strategic_bucket": "Healthy Growth", "success_percent": 50, "intervene": False, "priority_score": 5, "score_rationale": ""}
 
 
 def _extract_report_body(text: str) -> str:
@@ -147,8 +150,11 @@ async def _save_report(account_id: str, html_content: str, metadata: dict) -> di
             json={
                 "content": html_content,
                 "proposition_type": metadata["proposition_type"],
+                "strategic_bucket": metadata.get("strategic_bucket", "Healthy Growth"),
                 "success_percent": metadata["success_percent"],
                 "intervene": metadata["intervene"],
+                "priority_score": metadata.get("priority_score", 5),
+                "score_rationale": metadata.get("score_rationale", ""),
             },
             timeout=30,
         )
@@ -173,11 +179,15 @@ async def analyze_account(summary: dict, deals: list[dict]) -> dict:
     Doesn't know or care where the data came from.
     Returns: { content: str, proposition_type: str, success_percent: int, intervene: bool }
     """
-    relevant_deals = _filter_relevant_deals(deals, summary)
+    # If raw_data is present, pass text directly to prompt; otherwise use structured JSON
+    is_raw = "raw_data" in summary
+    account_data_str = summary["raw_data"] if is_raw else json.dumps(summary, indent=2)
+
+    relevant_deals = deals[:5] if is_raw else _filter_relevant_deals(deals, summary)
 
     # Pass 1: analytical report
     prompt = REPORT_ANALYZER_PROMPT.format(
-        account_data=json.dumps(summary, indent=2),
+        account_data=account_data_str,
         historical_deals=json.dumps(relevant_deals, indent=2),
     )
     model = ChatOpenAI(model=MODEL_NAME)
@@ -190,7 +200,7 @@ async def analyze_account(summary: dict, deals: list[dict]) -> dict:
     # Pass 2: sales script
     script_prompt = SALES_SCRIPT_PROMPT.format(
         report_content=report_body_md,
-        account_data=json.dumps(summary, indent=2),
+        account_data=account_data_str,
         proposition_type=metadata["proposition_type"],
     )
     script_response = await model.ainvoke(script_prompt)

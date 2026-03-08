@@ -2,14 +2,12 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { db } from "./db";
 import {
   accounts as accountsTable,
-  accountActiveUsers,
-  accountInvoicingUsages,
-  accountIntegrationsUsages,
+  accountUsageMetrics,
   accountBudgets,
   historicalDeals as historicalDealsTable,
   reports as reportsTable,
 } from "./db/schema";
-import { Account, AccountSummary, PropositionType, Report } from "@/components/contracts/types";
+import { Account, AccountSummary, PropositionType, Report, UsageMetric } from "@/components/contracts/types";
 
 export async function getAccounts(): Promise<Account[]> {
   const rows = await db.select({ id: accountsTable.id, name: accountsTable.name }).from(accountsTable);
@@ -26,15 +24,11 @@ export async function getAccount(id: string): Promise<Account | undefined> {
 
 export async function getAccountSummaries(ids: string[]): Promise<AccountSummary[]> {
   if (ids.length === 0) return [];
-  const rows = await db
+
+  const budgetRows = await db
     .select({
       id: accountsTable.id,
-      active_users: accountActiveUsers.active_users,
-      seat_limit: accountActiveUsers.seat_limit,
-      monthly_invoices: accountInvoicingUsages.monthly_invoices,
-      invoice_limit: accountInvoicingUsages.invoice_limit,
-      active_integrations: accountIntegrationsUsages.active_integrations,
-      integration_limit: accountIntegrationsUsages.integration_limit,
+      context: accountsTable.context,
       mrr: accountBudgets.mrr,
       contract_value: accountBudgets.contract_value,
       tier: accountBudgets.tier,
@@ -42,17 +36,37 @@ export async function getAccountSummaries(ids: string[]): Promise<AccountSummary
       payment_status: accountBudgets.payment_status,
     })
     .from(accountsTable)
-    .innerJoin(accountActiveUsers, eq(accountsTable.id, accountActiveUsers.account_id))
-    .innerJoin(accountInvoicingUsages, eq(accountsTable.id, accountInvoicingUsages.account_id))
-    .innerJoin(accountIntegrationsUsages, eq(accountsTable.id, accountIntegrationsUsages.account_id))
     .innerJoin(accountBudgets, eq(accountsTable.id, accountBudgets.account_id))
     .where(inArray(accountsTable.id, ids));
-  return rows.map((r) => ({
+
+  const metricRows = await db
+    .select({
+      account_id: accountUsageMetrics.account_id,
+      metric_name: accountUsageMetrics.metric_name,
+      current_value: accountUsageMetrics.current_value,
+      limit_value: accountUsageMetrics.limit_value,
+      unit: accountUsageMetrics.unit,
+    })
+    .from(accountUsageMetrics)
+    .where(inArray(accountUsageMetrics.account_id, ids));
+
+  const metricsByAccount = new Map<string, UsageMetric[]>();
+  for (const row of metricRows) {
+    const metrics = metricsByAccount.get(row.account_id) ?? [];
+    metrics.push({
+      metric_name: row.metric_name,
+      current_value: Number(row.current_value),
+      limit_value: Number(row.limit_value),
+      unit: row.unit,
+    });
+    metricsByAccount.set(row.account_id, metrics);
+  }
+
+  return budgetRows.map((r) => ({
     id: r.id,
-    active_users_report: { active_users: r.active_users, seat_limit: r.seat_limit },
-    invoicing_usage_report: { monthly_invoices: r.monthly_invoices, invoice_limit: r.invoice_limit },
-    integrations_usage_report: { active_integrations: r.active_integrations, integration_limit: r.integration_limit },
+    usage_metrics: metricsByAccount.get(r.id) ?? [],
     budget_report: { mrr: r.mrr, contract_value: r.contract_value, tier: r.tier, renewal_in_days: r.renewal_in_days, payment_status: r.payment_status },
+    context: r.context,
   }));
 }
 
@@ -74,12 +88,8 @@ export async function getReport(accountId: string): Promise<Report | undefined> 
 interface AccountFullRow {
   id: string;
   name: string;
-  active_users: number;
-  seat_limit: number;
-  monthly_invoices: number;
-  invoice_limit: number;
-  active_integrations: number;
-  integration_limit: number;
+  context: string | null;
+  usage_metrics: UsageMetric[];
   mrr: number;
   contract_value: number;
   tier: string;
@@ -88,16 +98,11 @@ interface AccountFullRow {
 }
 
 async function getAccountFull(accountId: string): Promise<AccountFullRow | undefined> {
-  const rows = await db
+  const accountRows = await db
     .select({
       id: accountsTable.id,
       name: accountsTable.name,
-      active_users: accountActiveUsers.active_users,
-      seat_limit: accountActiveUsers.seat_limit,
-      monthly_invoices: accountInvoicingUsages.monthly_invoices,
-      invoice_limit: accountInvoicingUsages.invoice_limit,
-      active_integrations: accountIntegrationsUsages.active_integrations,
-      integration_limit: accountIntegrationsUsages.integration_limit,
+      context: accountsTable.context,
       mrr: accountBudgets.mrr,
       contract_value: accountBudgets.contract_value,
       tier: accountBudgets.tier,
@@ -105,12 +110,31 @@ async function getAccountFull(accountId: string): Promise<AccountFullRow | undef
       payment_status: accountBudgets.payment_status,
     })
     .from(accountsTable)
-    .innerJoin(accountActiveUsers, eq(accountsTable.id, accountActiveUsers.account_id))
-    .innerJoin(accountInvoicingUsages, eq(accountsTable.id, accountInvoicingUsages.account_id))
-    .innerJoin(accountIntegrationsUsages, eq(accountsTable.id, accountIntegrationsUsages.account_id))
     .innerJoin(accountBudgets, eq(accountsTable.id, accountBudgets.account_id))
     .where(eq(accountsTable.id, accountId));
-  return rows[0];
+
+  if (!accountRows[0]) return undefined;
+
+  const metricRows = await db
+    .select({
+      metric_name: accountUsageMetrics.metric_name,
+      current_value: accountUsageMetrics.current_value,
+      limit_value: accountUsageMetrics.limit_value,
+      unit: accountUsageMetrics.unit,
+    })
+    .from(accountUsageMetrics)
+    .where(eq(accountUsageMetrics.account_id, accountId));
+
+  const r = accountRows[0];
+  return {
+    ...r,
+    usage_metrics: metricRows.map((m) => ({
+      metric_name: m.metric_name,
+      current_value: Number(m.current_value),
+      limit_value: Number(m.limit_value),
+      unit: m.unit,
+    })),
+  };
 }
 
 export async function createReport(accountId: string): Promise<Report | null> {
@@ -124,7 +148,7 @@ export async function createReport(accountId: string): Promise<Report | null> {
 
 export async function createReportFromData(
   accountId: string,
-  data: { content: string; proposition_type: string; success_percent: number; intervene: boolean }
+  data: { content: string; proposition_type: string; strategic_bucket?: string; success_percent: number; intervene: boolean; priority_score?: number; score_rationale?: string }
 ): Promise<Report | null> {
   const account = await getAccount(accountId);
   if (!account) return null;
@@ -134,8 +158,11 @@ export async function createReportFromData(
     id: crypto.randomUUID(),
     account_id: accountId,
     proposition_type: data.proposition_type as PropositionType,
+    strategic_bucket: data.strategic_bucket ?? null,
     success_percent: data.success_percent,
     intervene: data.intervene,
+    priority_score: data.priority_score ?? null,
+    score_rationale: data.score_rationale ?? null,
     content: data.content,
     generated_at: now,
     created_at: now,
@@ -148,13 +175,16 @@ export async function createReportFromData(
 export async function updateReportContent(
   reportId: string,
   content: string,
-  metadata?: { proposition_type?: string; success_percent?: number; intervene?: boolean }
+  metadata?: { proposition_type?: string; strategic_bucket?: string; success_percent?: number; intervene?: boolean; priority_score?: number; score_rationale?: string }
 ): Promise<Report | undefined> {
   const now = new Date().toISOString();
   const updates: Record<string, unknown> = { content, updated_at: now };
   if (metadata?.proposition_type) updates.proposition_type = metadata.proposition_type;
+  if (metadata?.strategic_bucket) updates.strategic_bucket = metadata.strategic_bucket;
   if (metadata?.success_percent !== undefined) updates.success_percent = metadata.success_percent;
   if (metadata?.intervene !== undefined) updates.intervene = metadata.intervene;
+  if (metadata?.priority_score !== undefined) updates.priority_score = metadata.priority_score;
+  if (metadata?.score_rationale !== undefined) updates.score_rationale = metadata.score_rationale;
   await db
     .update(reportsTable)
     .set(updates)
@@ -178,18 +208,24 @@ export async function createReports(accountIds: string[]): Promise<Report[]> {
 }
 
 function generateMockReport(account: AccountFullRow): Report {
-  const userUtilization = account.active_users / account.seat_limit;
-  const invoiceUtilization = account.monthly_invoices / account.invoice_limit;
-  const integrationUtilization = account.active_integrations / account.integration_limit;
-  const avgUtilization = (userUtilization + invoiceUtilization + integrationUtilization) / 3;
+  const metrics = account.usage_metrics;
+  const utilizations = metrics
+    .filter((m) => m.limit_value > 0)
+    .map((m) => m.current_value / m.limit_value);
 
-  const overAnyLimit =
-    userUtilization > 1 || invoiceUtilization > 1 || integrationUtilization > 1;
-  const nearAllLimits =
-    userUtilization > 0.9 && invoiceUtilization > 0.9 && integrationUtilization > 0.9;
+  const avgUtilization = utilizations.length > 0
+    ? utilizations.reduce((a, b) => a + b, 0) / utilizations.length
+    : 0;
+
+  const overAnyLimit = utilizations.some((u) => u > 1);
+  const nearAllLimits = utilizations.length > 0 && utilizations.every((u) => u > 0.9);
   const lowUsage = avgUtilization < 0.3;
   const isOverdue = account.payment_status === "overdue";
   const renewingSoon = account.renewal_in_days <= 30;
+
+  const metricsStr = metrics
+    .map((m) => `${m.metric_name}: ${m.current_value}/${m.limit_value}${m.unit ? ` ${m.unit}` : ""}`)
+    .join(", ");
 
   let proposition_type: PropositionType;
   let success_percent: number;
@@ -200,7 +236,7 @@ function generateMockReport(account: AccountFullRow): Report {
     proposition_type = "requires negotiation";
     success_percent = Math.round(70 + Math.random() * 25);
     intervene = true;
-    content = `${account.name} has exceeded contract limits. Users: ${account.active_users}/${account.seat_limit}, Invoices: ${account.monthly_invoices}/${account.invoice_limit}, Integrations: ${account.active_integrations}/${account.integration_limit}. Renewal in ${account.renewal_in_days} days. Recommend immediate outreach to negotiate upgraded tier from ${account.tier}. Current MRR: $${account.mrr.toLocaleString()}.`;
+    content = `${account.name} has exceeded contract limits. ${metricsStr}. Renewal in ${account.renewal_in_days} days. Recommend immediate outreach to negotiate upgraded tier from ${account.tier}. Current MRR: $${account.mrr.toLocaleString()}.`;
   } else if (nearAllLimits) {
     proposition_type = "upsell proposition";
     success_percent = Math.round(60 + Math.random() * 30);
@@ -210,7 +246,7 @@ function generateMockReport(account: AccountFullRow): Report {
     proposition_type = "poor usage";
     success_percent = Math.round(20 + Math.random() * 40);
     intervene = isOverdue || renewingSoon;
-    content = `${account.name} shows low engagement (avg ${Math.round(avgUtilization * 100)}% utilization). ${isOverdue ? "Payment is OVERDUE. " : ""}Users: ${account.active_users}/${account.seat_limit}. Churn risk is elevated. ${renewingSoon ? `Renewal in ${account.renewal_in_days} days - urgent intervention needed.` : `Renewal in ${account.renewal_in_days} days.`} Consider success engagement program.`;
+    content = `${account.name} shows low engagement (avg ${Math.round(avgUtilization * 100)}% utilization). ${isOverdue ? "Payment is OVERDUE. " : ""}${metricsStr}. Churn risk is elevated. ${renewingSoon ? `Renewal in ${account.renewal_in_days} days - urgent intervention needed.` : `Renewal in ${account.renewal_in_days} days.`} Consider success engagement program.`;
   } else if (avgUtilization > 0.85) {
     proposition_type = "at capacity";
     success_percent = Math.round(50 + Math.random() * 30);
@@ -228,8 +264,11 @@ function generateMockReport(account: AccountFullRow): Report {
     id: crypto.randomUUID(),
     account_id: account.id,
     proposition_type,
+    strategic_bucket: null,
     success_percent,
     intervene,
+    priority_score: null,
+    score_rationale: null,
     content,
     generated_at: now,
     created_at: now,

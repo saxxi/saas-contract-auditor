@@ -207,8 +207,11 @@ async def update_report(account_id: str, changes: str, runtime: ToolRuntime) -> 
             json={
                 "content": report_body_md,
                 "proposition_type": metadata["proposition_type"],
+                "strategic_bucket": metadata.get("strategic_bucket", "Healthy Growth"),
                 "success_percent": metadata["success_percent"],
                 "intervene": metadata["intervene"],
+                "priority_score": metadata.get("priority_score", 5),
+                "score_rationale": metadata.get("score_rationale", ""),
             },
             timeout=30,
         )
@@ -277,46 +280,89 @@ async def find_opportunities(account_ids: list[str], runtime: ToolRuntime) -> Co
 
 
 def _raw_json_to_summary(data: dict) -> dict:
-    """Transform landing page JSON shape -> AccountSummary dict."""
+    """Transform landing page JSON shape -> AccountSummary dict.
+
+    Accepts arbitrary usage metrics. If the input has a `usage_metrics` array,
+    pass it through. Otherwise, scan `usage` dict for paired current/limit
+    fields (e.g. active_users + seat_limit) and build metrics dynamically.
+    """
+    # If already in the new format, pass through
+    if "usage_metrics" in data:
+        return {
+            "id": "DEMO",
+            "name": data.get("account", "Demo Account"),
+            "usage_metrics": data["usage_metrics"],
+            "budget_report": data.get("contract", data.get("budget_report", {})),
+            "context": data.get("context"),
+        }
+
+    # Legacy format: scan usage dict for value/limit pairs
+    usage = data.get("usage", {})
+    metrics = []
+
+    # Known paired fields (old format)
+    known_pairs = [
+        ("active_users", "seat_limit", "seats", "users"),
+        ("monthly_invoices", "invoice_limit", "invoices", "invoices/mo"),
+        ("active_integrations", "integration_limit", "integrations", "active"),
+    ]
+
+    matched_keys = set()
+    for current_key, limit_key, metric_name, unit in known_pairs:
+        if current_key in usage:
+            metrics.append({
+                "metric_name": metric_name,
+                "current_value": usage[current_key],
+                "limit_value": usage.get(limit_key, usage[current_key]),
+                "unit": unit,
+            })
+            matched_keys.add(current_key)
+            matched_keys.add(limit_key)
+
+    # Pick up any remaining key/value pairs as generic metrics
+    for key, value in usage.items():
+        if key in matched_keys:
+            continue
+        if isinstance(value, (int, float)):
+            metrics.append({
+                "metric_name": key,
+                "current_value": value,
+                "limit_value": value,
+                "unit": None,
+            })
+
     return {
         "id": "DEMO",
         "name": data.get("account", "Demo Account"),
-        "active_users_report": {
-            "active_users": data.get("usage", {}).get("active_users", 0),
-            "seat_limit": data.get("usage", {}).get("seat_limit", 100),
-        },
-        "invoicing_usage_report": {
-            "monthly_invoices": data.get("usage", {}).get("monthly_invoices", 0),
-            "invoice_limit": data.get("usage", {}).get("invoice_limit", 500),
-        },
-        "integrations_usage_report": {
-            "active_integrations": data.get("usage", {}).get("active_integrations", 0),
-            "integration_limit": data.get("usage", {}).get("integration_limit", 10),
-        },
-        "budget_report": data.get("contract", {}),
+        "usage_metrics": metrics,
+        "budget_report": data.get("contract", data.get("budget_report", {})),
+        "context": data.get("context"),
     }
 
 
 @tool
-async def analyze_raw_data(account_data_json: str, runtime: ToolRuntime) -> Command:
+async def analyze_raw_data(account_data: str, runtime: ToolRuntime) -> Command:
     """
-    Generate a report from raw account JSON data (no DB lookup).
+    Generate a report from raw account data (no DB lookup).
     Used for the landing page demo where users paste arbitrary data.
-    Accepts a JSON string with account, contract, usage, and history fields.
+    Accepts EITHER a JSON string with account/contract/usage fields,
+    OR free-form text (e.g. bullet-point client dataset).
+    Pass the user's data as-is — do not restructure or summarize it.
     """
+    # Try JSON first; fall back to raw text
     try:
-        data = json.loads(account_data_json)
-    except json.JSONDecodeError as e:
-        return Command(update={
-            "messages": [
-                ToolMessage(
-                    content=f"Invalid JSON: {e}",
-                    tool_call_id=runtime.tool_call_id,
-                )
-            ]
-        })
+        data = json.loads(account_data)
+        summary = _raw_json_to_summary(data)
+        account_name = data.get("account", "Demo Account")
+    except (json.JSONDecodeError, ValueError):
+        # Free text — pass directly to LLM prompt (it handles any format)
+        summary = {
+            "id": "DEMO",
+            "name": "Demo Account",
+            "raw_data": account_data,
+        }
+        account_name = "Demo Account"
 
-    summary = _raw_json_to_summary(data)
     all_deals = await _fetch_historical_deals()
     result = await analyze_account(summary, all_deals)
 
@@ -324,7 +370,7 @@ async def analyze_raw_data(account_data_json: str, runtime: ToolRuntime) -> Comm
         "demo_report": result,
         "messages": [
             ToolMessage(
-                content=f"Report generated for {data.get('account', 'Demo Account')}! The report is now displayed.",
+                content=f"Report generated for {account_name}! The report is now displayed.",
                 tool_call_id=runtime.tool_call_id,
             )
         ],

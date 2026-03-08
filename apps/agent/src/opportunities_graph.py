@@ -84,17 +84,24 @@ async def fetch_and_analyze(state: OpportunitiesState) -> dict:
         aid = s.get("id", "")
         if aid not in account_ids:
             continue
-        account_data.append({
+        # Build usage summary from flexible metrics
+        usage = {}
+        for m in s.get("usage_metrics", []):
+            name = m.get("metric_name", "unknown")
+            usage[name] = f"{m.get('current_value', 0)}/{m.get('limit_value', 0)}"
+
+        entry = {
             "id": aid,
             "name": names.get(aid, aid),
             "tier": s.get("budget_report", {}).get("tier", ""),
             "mrr": s.get("budget_report", {}).get("mrr", 0),
             "renewal_in_days": s.get("budget_report", {}).get("renewal_in_days", 0),
             "payment_status": s.get("budget_report", {}).get("payment_status", ""),
-            "users": f"{s.get('active_users_report', {}).get('active_users', 0)}/{s.get('active_users_report', {}).get('seat_limit', 0)}",
-            "invoices": f"{s.get('invoicing_usage_report', {}).get('monthly_invoices', 0)}/{s.get('invoicing_usage_report', {}).get('invoice_limit', 0)}",
-            "integrations": f"{s.get('integrations_usage_report', {}).get('active_integrations', 0)}/{s.get('integrations_usage_report', {}).get('integration_limit', 0)}",
-        })
+            **usage,
+        }
+        if s.get("context"):
+            entry["context"] = s["context"]
+        account_data.append(entry)
 
     prompt = OPPORTUNITIES_PROMPT.format(
         account_data=json.dumps(account_data, separators=(",", ":")),

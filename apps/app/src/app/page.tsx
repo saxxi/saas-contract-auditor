@@ -489,7 +489,7 @@ export default function HomePage() {
       {/* Report dialog */}
       {reportData && showDialog && (
         <LandingReportDialog
-          accountName={activeExample === 1 ? "Northstar Logistics GmbH" : "Velocity Logistics"}
+          accountName="Report for selected company"
           report={reportData}
           onClose={() => setShowDialog(false)}
         />
