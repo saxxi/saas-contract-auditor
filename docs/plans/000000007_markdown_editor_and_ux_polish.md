@@ -1,83 +1,69 @@
-# Plan: Replace TipTap with Markdown Editor + UX Polish
+# Plan: Replace TipTap with Markdown Editor + McKinsey-Style Reports
 
 ## Context
 
-TipTap StarterKit strips HTML tags it doesn't support (tables, complex lists). The LLM outputs markdown natively. Switching to a markdown editor eliminates the markdown-to-HTML conversion pipeline entirely and renders tables/lists correctly. Several other UX issues to fix alongside.
+TipTap StarterKit strips unsupported HTML (tables, complex lists). LLM outputs markdown natively. Switching to a markdown editor eliminates the conversion pipeline and renders all content correctly.
 
-## Changes
+Additionally, reports now follow a McKinsey-style "Situation, Complication, Resolution" framework for more actionable, structured engagement briefs.
 
-### 1. Replace TipTap with `@uiw/react-md-editor`
+## Changes (all implemented)
 
-Store markdown in DB instead of HTML. Use `@uiw/react-md-editor` for display + editing in the modal.
+### 1. TipTap replaced with `@uiw/react-md-editor`
+- Raw markdown stored in DB (no HTML conversion)
+- `@uiw/react-md-editor` loaded via `next/dynamic` (SSR disabled)
+- Preview mode by default, Edit button toggles to live editor with toolbar
+- Dark mode detected via MutationObserver on `<html>` class
+- Removed: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`, `@tailwindcss/typography`
+- Removed: Python `markdown` library, all `markdown.markdown()` calls
 
-**Frontend (`report-modal.tsx`):**
-- Remove TipTap imports (`useEditor`, `EditorContent`, `StarterKit`)
-- Remove `EditorToolbar` component
-- Add `@uiw/react-md-editor` with preview mode by default
-- The editor handles markdown natively - tables, lists, headings all render correctly
-- Keep debounced auto-save on content change (save raw markdown)
-- Keep agent state sync (`report_manually_edited`, `report_latest_content`) but pass markdown instead of HTML
+### 2. McKinsey-style modal layout
+- Compact header: account name, proposition badge (solid colored), success %, action required flag
+- Metrics strip below header: MRR, renewal, payment, users, invoices, integrations with utilization %
+- Edit/Preview toggle button (top right)
+- Toolbar hidden in preview mode, shown in edit mode
+- Generated date moved to metrics strip
 
-**Backend (`report_graph.py`):**
-- Remove `import markdown` and the HTML conversion step
-- Save the raw markdown body directly via `_save_report` (no `markdown.markdown()` call)
+### 3. McKinsey-style report prompt (Situation/Complication/Resolution)
+- **Situation**: facts only, numbers first
+- **Complication**: what breaks if nothing changes
+- **Resolution**: Option A vs Option B table with action/upside/risk/timeline, then recommendation
+- **Key Metrics**: pipe table with utilization %
+- **Evidence from Similar Engagements**: historical deals with "what happened / what it means"
+- **Risks and Mitigants**: paired table (risk + likelihood + mitigant)
+- **Next Steps**: RACI-style table (action/owner/deadline relative to renewal)
+- **Key Question**: one question for the client meeting
 
-**Backend (`contracts.py`):**
-- `update_report`: remove `md_lib.markdown()` conversion, save raw markdown
-- `REPORT_UPDATE_PROMPT`: change instruction from "Current Report Content (HTML)" to "(Markdown)" since content is now markdown
+### 4. Writing style rules in prompts
+- No em dashes, no emojis, no filler phrases
+- Numbers first, lead with conclusion
+- Plain business English, short direct sentences
+- Bullet points use `-` not `*`
 
-**Cleanup:**
-- Remove `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm` from `package.json`
-- Remove `@tailwindcss/typography` from `package.json` (no longer needed)
-- Remove `@plugin "@tailwindcss/typography"` from `globals.css`
-- Remove `markdown` from Python `pyproject.toml` dependencies
+### 5. Per-account "Generating..." button state
+- `generatingIds: Set<string>` tracks which accounts are generating
+- Only the specific row shows "Generating...", others stay normal
 
-### 2. Fix "Generate..." button state (per-account)
+### 6. Other fixes
+- Close button: `cursor-pointer`
+- Guard all `agent.runAgent()` with `if (agent.isRunning) return`
+- React Query cache invalidation on agent completion
 
-Current bug: all "Generate..." buttons turn to "Generating..." simultaneously.
-
-**Fix:** Track `generatingAccountIds: Set<string>` instead of a boolean `isGenerating`.
-- `handleGenerateReport(id)`: add `id` to set
-- `handleGenerateMissing()`: add all pending IDs to set
-- On agent finish (isRunning true->false): clear the set
-- Pass the set to `SelectedAccountsTable`, which checks `generatingAccountIds.has(account.id)` per row
-
-**Files:**
-- `contracts-canvas.tsx` - track set instead of boolean
-- `selected-accounts-table.tsx` - per-row check
-
-### 3. Modal close button cursor
-
-Add `cursor-pointer` to the `&times;` button in `report-modal.tsx`.
-
-### 4. Improve prompts to avoid AI tells
-
-Update `apps/agent/src/prompts.py`:
-- Remove em dash instruction artifacts
-- Add explicit rules: "Do not use em dashes. Use commas, periods, or semicolons instead." and "No emojis."
-- Add: "Write in plain business English. Avoid filler phrases like 'It is worth noting', 'Importantly', 'Notably'."
-
-### 5. Update REPORT_UPDATE_PROMPT
-
-Since content is now markdown (not HTML), update the prompt to reference markdown format.
-
-## Files to modify
-
-- `apps/app/src/components/contracts/report-modal.tsx` - replace TipTap with md-editor
-- `apps/app/src/components/contracts/contracts-canvas.tsx` - generatingAccountIds set
-- `apps/app/src/components/contracts/selected-accounts-table.tsx` - per-row generating state
-- `apps/agent/src/report_graph.py` - remove markdown->HTML conversion
-- `apps/agent/src/contracts.py` - remove markdown->HTML in update_report
-- `apps/agent/src/prompts.py` - fix AI tells, update format references
-- `apps/app/package.json` - add `@uiw/react-md-editor`, remove tiptap packages and typography
-- `apps/app/src/app/globals.css` - remove typography plugin
-- `apps/agent/pyproject.toml` - remove `markdown` dependency
+## Files modified
+- `apps/app/src/components/contracts/report-modal.tsx` - full rewrite
+- `apps/app/src/components/contracts/contracts-canvas.tsx` - generatingIds, guards
+- `apps/app/src/components/contracts/selected-accounts-table.tsx` - per-row state
+- `apps/agent/src/report_graph.py` - removed markdown->HTML conversion
+- `apps/agent/src/contracts.py` - removed markdown->HTML in update_report
+- `apps/agent/src/prompts.py` - McKinsey-style SCR framework + style rules
+- `apps/agent/main.py` - updated system prompt terminology
+- `apps/app/package.json` - added md-editor, removed tiptap + typography
+- `apps/app/src/app/globals.css` - removed typography plugin
+- `apps/agent/pyproject.toml` - removed markdown dependency
 
 ## Verification
-
-1. Generate a report - content saved as markdown in DB, modal shows rendered markdown with proper tables and lists
-2. Edit in modal - raw markdown editing, auto-saves
-3. Agent updates report - reads/writes markdown (no HTML conversion)
-4. "Generate..." buttons only show "Generating..." for accounts being generated
-5. Close button shows pointer cursor
-6. No em dashes or AI filler in generated reports
+1. Clear cache: `rm -rf apps/agent/.cache/*.json`
+2. Generate a report: should produce SCR-structured markdown with tables
+3. Modal: preview mode shows rendered markdown, Edit button toggles to editor
+4. Dark mode: editor background matches app theme
+5. Per-account buttons: only generating row shows "Generating..."
+6. No em dashes or filler in generated content

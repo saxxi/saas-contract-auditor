@@ -15,11 +15,36 @@ interface ReportModalProps {
   onClose: () => void;
 }
 
+function MetricCard({ label, value, sub, alert }: { label: string; value: string; sub?: string; alert?: boolean }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">{label}</span>
+      <span className={`text-sm font-semibold tabular-nums ${alert ? "text-red-600" : ""}`}>{value}</span>
+      {sub && <span className="text-[10px] text-zinc-400">{sub}</span>}
+    </div>
+  );
+}
+
+function utilPercent(used: number, limit: number): string {
+  return `${Math.round((used / limit) * 100)}%`;
+}
+
 export function ReportModal({ account, report, summary, onClose }: ReportModalProps) {
   const { agent } = useAgent();
   const updateReport = useUpdateReportContent();
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
   const [content, setContent] = useState(report.content);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains("dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reportIdRef = useRef(report.id);
 
@@ -27,7 +52,6 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
     reportIdRef.current = report.id;
   }, [report.id]);
 
-  // Reset content when report changes (e.g. after regeneration)
   useEffect(() => {
     setContent(report.content);
   }, [report.id, report.content]);
@@ -65,106 +89,118 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
     };
   }, []);
 
+  const renewalUrgent = summary ? summary.budget_report.renewal_in_days <= 30 : false;
+  const paymentOverdue = summary?.budget_report.payment_status === "overdue";
+
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg" onClick={onClose}>
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 rounded-lg" onClick={onClose}>
       <div
-        className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-[calc(100%-2rem)] max-h-[calc(100%-2rem)] flex flex-col"
+        className="bg-white dark:bg-zinc-900 rounded-lg shadow-2xl w-[calc(100%-2rem)] max-h-[calc(100%-2rem)] flex flex-col border border-zinc-200 dark:border-zinc-700"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
-          <div>
-            <h2 className="text-lg font-semibold">{account.name}</h2>
-            <span className="text-sm text-zinc-500">
-              {account.id}{summary ? ` \u00b7 ${summary.budget_report.tier}` : ""}
-              {" \u00b7 "}Generated {new Date(report.generated_at).toLocaleDateString()}
-            </span>
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-200 dark:border-zinc-700">
+          <div className="flex items-center gap-4">
+            <div>
+              <h2 className="text-base font-semibold tracking-tight">{account.name}</h2>
+              <span className="text-xs text-zinc-400 font-mono">{account.id}</span>
+            </div>
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700" />
+            <div className="flex items-center gap-2">
+              <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wide ${
+                report.proposition_type === "requires negotiation" ? "bg-red-600 text-white" :
+                report.proposition_type === "upsell proposition" ? "bg-blue-600 text-white" :
+                report.proposition_type === "poor usage" ? "bg-amber-500 text-white" :
+                report.proposition_type === "at capacity" ? "bg-orange-500 text-white" :
+                "bg-emerald-600 text-white"
+              }`}>
+                {report.proposition_type}
+              </span>
+              <span className={`text-xs font-semibold tabular-nums ${
+                report.success_percent >= 70 ? "text-emerald-600" : report.success_percent >= 40 ? "text-amber-600" : "text-red-600"
+              }`}>
+                {report.success_percent}% success
+              </span>
+              {report.intervene && (
+                <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
+                  Action Required
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {saveStatus === "saving" && <span className="text-xs text-zinc-400">Saving...</span>}
-            {saveStatus === "saved" && <span className="text-xs text-green-500">Saved</span>}
+          <div className="flex items-center gap-3">
+            {saveStatus === "saving" && <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Saving...</span>}
+            {saveStatus === "saved" && <span className="text-[10px] text-emerald-500 uppercase tracking-wider">Saved</span>}
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded cursor-pointer transition-colors ${
+                isEditing
+                  ? "bg-blue-600 text-white"
+                  : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              }`}
+            >
+              {isEditing ? "Preview" : "Edit"}
+            </button>
             <button
               onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl leading-none px-2 cursor-pointer"
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-lg leading-none px-1 cursor-pointer"
             >
               &times;
             </button>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 min-h-0 flex overflow-hidden">
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            <div className="px-6 pt-4 pb-2">
-              <div className="flex items-center gap-3">
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                  report.proposition_type === "requires negotiation" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" :
-                  report.proposition_type === "upsell proposition" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" :
-                  report.proposition_type === "poor usage" ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" :
-                  report.proposition_type === "at capacity" ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" :
-                  "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                }`}>
-                  {report.proposition_type}
-                </span>
-                <span className="text-sm text-zinc-500">
-                  Success: <strong className={report.success_percent >= 70 ? "text-green-600" : report.success_percent >= 40 ? "text-amber-600" : "text-red-600"}>
-                    {report.success_percent}%
-                  </strong>
-                </span>
-                {report.intervene && (
-                  <span className="text-xs font-semibold text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
-                    INTERVENTION NEEDED
-                  </span>
-                )}
-              </div>
+        {/* Metrics strip */}
+        {summary && (
+          <div className="flex items-center gap-6 px-6 py-2.5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30">
+            <MetricCard
+              label="MRR"
+              value={`$${summary.budget_report.mrr.toLocaleString()}`}
+              sub={summary.budget_report.tier}
+            />
+            <MetricCard
+              label="Renewal"
+              value={`${summary.budget_report.renewal_in_days}d`}
+              alert={renewalUrgent}
+            />
+            <MetricCard
+              label="Payment"
+              value={summary.budget_report.payment_status}
+              alert={paymentOverdue}
+            />
+            <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700" />
+            <MetricCard
+              label="Users"
+              value={`${summary.active_users_report.active_users} / ${summary.active_users_report.seat_limit}`}
+              sub={utilPercent(summary.active_users_report.active_users, summary.active_users_report.seat_limit)}
+            />
+            <MetricCard
+              label="Invoices"
+              value={`${summary.invoicing_usage_report.monthly_invoices} / ${summary.invoicing_usage_report.invoice_limit}`}
+              sub={utilPercent(summary.invoicing_usage_report.monthly_invoices, summary.invoicing_usage_report.invoice_limit)}
+            />
+            <MetricCard
+              label="Integrations"
+              value={`${summary.integrations_usage_report.active_integrations} / ${summary.integrations_usage_report.integration_limit}`}
+              sub={utilPercent(summary.integrations_usage_report.active_integrations, summary.integrations_usage_report.integration_limit)}
+            />
+            <div className="ml-auto text-[10px] text-zinc-400">
+              Generated {new Date(report.generated_at).toLocaleDateString()}
             </div>
-
-            <div className="mx-6 mb-4 flex-1 min-h-0 overflow-hidden" data-color-mode="light">
-              <MDEditor
-                value={content}
-                onChange={handleContentChange}
-                preview="preview"
-                height={500}
-                visibleDragbar={false}
-                style={{ height: "100%" }}
-              />
-            </div>
-
-            {summary && (
-              <div className="px-6 pb-4">
-                <div className="grid grid-cols-3 gap-3 text-sm">
-                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                    <div className="text-zinc-500 text-xs mb-1">Users</div>
-                    <div className="font-semibold">{summary.active_users_report.active_users} / {summary.active_users_report.seat_limit}</div>
-                  </div>
-                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                    <div className="text-zinc-500 text-xs mb-1">Invoices</div>
-                    <div className="font-semibold">{summary.invoicing_usage_report.monthly_invoices} / {summary.invoicing_usage_report.invoice_limit}</div>
-                  </div>
-                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                    <div className="text-zinc-500 text-xs mb-1">Integrations</div>
-                    <div className="font-semibold">{summary.integrations_usage_report.active_integrations} / {summary.integrations_usage_report.integration_limit}</div>
-                  </div>
-                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                    <div className="text-zinc-500 text-xs mb-1">MRR</div>
-                    <div className="font-semibold">${summary.budget_report.mrr.toLocaleString()}</div>
-                  </div>
-                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                    <div className="text-zinc-500 text-xs mb-1">Renewal</div>
-                    <div className={`font-semibold ${summary.budget_report.renewal_in_days <= 30 ? "text-red-600" : ""}`}>
-                      {summary.budget_report.renewal_in_days} days
-                    </div>
-                  </div>
-                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-3">
-                    <div className="text-zinc-500 text-xs mb-1">Payment</div>
-                    <div className={`font-semibold ${summary.budget_report.payment_status === "overdue" ? "text-red-600" : "text-green-600"}`}>
-                      {summary.budget_report.payment_status}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
+        )}
+
+        {/* Report content */}
+        <div className="flex-1 min-h-0 overflow-hidden" data-color-mode={isDark ? "dark" : "light"}>
+          <MDEditor
+            value={content}
+            onChange={handleContentChange}
+            preview={isEditing ? "live" : "preview"}
+            height={500}
+            visibleDragbar={false}
+            hideToolbar={!isEditing}
+            style={{ height: "100%", border: "none", borderRadius: 0 }}
+          />
         </div>
       </div>
     </div>
