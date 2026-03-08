@@ -17,3 +17,22 @@
 - Prefer specialized timestamp columns for business-critical dates (e.g. `generated_at` for reports) alongside standard `created_at`/`updated_at`
 - Reports table supports multiple reports per account. `reportsById` maps to the latest report per account. Regeneration always creates a new row
 - `agent.setState()` replaces the entire state — always spread `...agent.state` to preserve existing keys
+- Report generation uses LangGraph StateGraph with `Send()` fan-out for parallel processing. Each account gets its own fork: fetch→analyze(LLM)→save
+- Report generation routed through agent chat (not direct REST calls). Frontend clears messages, sends agent message with account IDs, agent calls `generate_reports` tool
+- After batch generation: no modal opens, chat shows conversational summary. User opens individual reports from table
+- Chat context persists across modal open/close — batch context not lost when viewing individual reports
+- Chat is talkative, reports are visual in modal. Agent never dumps large text blocks into chat
+- Batch edits require modal: agent opens one report first, applies change, asks "apply to others?"
+- Agent state `report_manually_edited` + `report_latest_content` track TipTap edits so agent fetches latest before updating
+- File-based JSON cache in `apps/agent/.cache/` (gitignored). TTL: 1 day dev, 10 min prod. Caches account summaries + historical deals
+- `agent.setMessages([])` clears chat messages (CopilotKit v2 API)
+- `agent.isRunning` is global — don't use it for specific button states (e.g. "Find Opportunities"). Track local state per action instead
+- Agent writes to DB directly (bypassing React Query mutations) — invalidate queries via `useEffect` on `agent.isRunning` transition (true→false)
+- Guard all `agent.runAgent()` calls with `if (agent.isRunning) return` to prevent "Thread already running" errors
+- Tailwind v4 plugins use `@plugin "@tailwindcss/typography"` syntax in CSS (not `@import`)
+- LLM prompt for markdown tables must include explicit pipe-table example format or tables render as `<p>` text
+- "poor usage" classification should only apply to genuinely low utilization (<30%), not overdue-payment-with-high-utilization accounts
+- Replaced TipTap with `@uiw/react-md-editor` -- TipTap StarterKit strips unsupported HTML (tables, complex lists). Storing raw markdown in DB, rendered by md-editor
+- Removed Python `markdown` library and all markdown-to-HTML conversion -- LLM outputs markdown, stored as-is, rendered client-side
+- `@uiw/react-md-editor` must use `dynamic(() => import(...), { ssr: false })` in Next.js (uses browser APIs)
+- Track `generatingIds: Set<string>` instead of boolean `isGenerating` for per-account button state

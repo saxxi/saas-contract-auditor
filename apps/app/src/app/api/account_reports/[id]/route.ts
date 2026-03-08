@@ -19,7 +19,10 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const report = await updateReportContent(id, body.content);
+  const metadata = body.proposition_type
+    ? { proposition_type: body.proposition_type, success_percent: body.success_percent, intervene: body.intervene }
+    : undefined;
+  const report = await updateReportContent(id, body.content, metadata);
   if (!report) {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }

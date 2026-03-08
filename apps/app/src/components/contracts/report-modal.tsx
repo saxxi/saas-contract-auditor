@@ -1,54 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
+import { useAgent } from "@copilotkit/react-core/v2";
+import dynamic from "next/dynamic";
 import { Account, AccountSummary, Report } from "./types";
 import { useUpdateReportContent } from "@/hooks/use-account-reports";
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
 interface ReportModalProps {
   account: Account;
   report: Report;
   summary?: AccountSummary;
   onClose: () => void;
-  onRegenerate: (id: string) => void;
-  isRegenerating?: boolean;
 }
 
-function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
-  if (!editor) return null;
-
-  const btn = (active: boolean) =>
-    `px-2 py-1 rounded text-xs font-medium transition-colors ${
-      active
-        ? "bg-zinc-200 dark:bg-zinc-600 text-zinc-900 dark:text-zinc-100"
-        : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-    }`;
-
-  return (
-    <div className="flex items-center gap-1 px-3 py-2 border-b border-zinc-200 dark:border-zinc-700">
-      <button onClick={() => editor.chain().focus().toggleBold().run()} className={btn(editor.isActive("bold"))}>
-        B
-      </button>
-      <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btn(editor.isActive("italic"))}>
-        I
-      </button>
-      <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={btn(editor.isActive("heading", { level: 3 }))}>
-        H3
-      </button>
-      <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={btn(editor.isActive("bulletList"))}>
-        List
-      </button>
-      <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={btn(editor.isActive("orderedList"))}>
-        1.
-      </button>
-    </div>
-  );
-}
-
-export function ReportModal({ account, report, summary, onClose, onRegenerate, isRegenerating }: ReportModalProps) {
+export function ReportModal({ account, report, summary, onClose }: ReportModalProps) {
+  const { agent } = useAgent();
   const updateReport = useUpdateReportContent();
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
+  const [content, setContent] = useState(report.content);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reportIdRef = useRef(report.id);
 
@@ -56,22 +27,36 @@ export function ReportModal({ account, report, summary, onClose, onRegenerate, i
     reportIdRef.current = report.id;
   }, [report.id]);
 
-  const handleContentUpdate = useCallback(
-    (html: string) => {
+  // Reset content when report changes (e.g. after regeneration)
+  useEffect(() => {
+    setContent(report.content);
+  }, [report.id, report.content]);
+
+  const handleContentChange = useCallback(
+    (value: string | undefined) => {
+      const md = value ?? "";
+      setContent(md);
+
       if (debounceRef.current) clearTimeout(debounceRef.current);
       setSaveStatus("idle");
       debounceRef.current = setTimeout(() => {
         setSaveStatus("saving");
         updateReport.mutate(
-          { reportId: reportIdRef.current, content: html },
+          { reportId: reportIdRef.current, content: md },
           {
             onSuccess: () => setSaveStatus("saved"),
             onError: () => setSaveStatus("idle"),
           }
         );
       }, 800);
+
+      agent.setState({
+        ...agent.state,
+        report_manually_edited: true,
+        report_latest_content: md,
+      });
     },
-    [updateReport]
+    [updateReport, agent]
   );
 
   useEffect(() => {
@@ -79,30 +64,6 @@ export function ReportModal({ account, report, summary, onClose, onRegenerate, i
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
-
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions: [StarterKit],
-    content: report.content.includes("<") ? report.content : `<p>${report.content}</p>`,
-    onUpdate: ({ editor }) => {
-      handleContentUpdate(editor.getHTML());
-    },
-    editorProps: {
-      attributes: {
-        class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-3",
-      },
-    },
-  });
-
-  // Reset editor content when report changes (e.g. after regeneration)
-  useEffect(() => {
-    if (editor && !editor.isDestroyed) {
-      const newContent = report.content.includes("<") ? report.content : `<p>${report.content}</p>`;
-      if (editor.getHTML() !== newContent) {
-        editor.commands.setContent(newContent);
-      }
-    }
-  }, [report.id, report.content, editor]);
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-lg" onClick={onClose}>
@@ -123,15 +84,8 @@ export function ReportModal({ account, report, summary, onClose, onRegenerate, i
             {saveStatus === "saving" && <span className="text-xs text-zinc-400">Saving...</span>}
             {saveStatus === "saved" && <span className="text-xs text-green-500">Saved</span>}
             <button
-              onClick={() => onRegenerate(account.id)}
-              disabled={isRegenerating}
-              className="text-xs px-3 py-1.5 rounded border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isRegenerating ? "Regenerating..." : "Regenerate"}
-            </button>
-            <button
               onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl leading-none px-2"
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-2xl leading-none px-2 cursor-pointer"
             >
               &times;
             </button>
@@ -140,7 +94,6 @@ export function ReportModal({ account, report, summary, onClose, onRegenerate, i
 
         {/* Body */}
         <div className="flex-1 min-h-0 flex overflow-hidden">
-          {/* Left: Report content */}
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <div className="px-6 pt-4 pb-2">
               <div className="flex items-center gap-3">
@@ -166,11 +119,15 @@ export function ReportModal({ account, report, summary, onClose, onRegenerate, i
               </div>
             </div>
 
-            <div className="mx-6 mb-4 flex-1 min-h-0 flex flex-col border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
-              <EditorToolbar editor={editor} />
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <EditorContent editor={editor} />
-              </div>
+            <div className="mx-6 mb-4 flex-1 min-h-0 overflow-hidden" data-color-mode="light">
+              <MDEditor
+                value={content}
+                onChange={handleContentChange}
+                preview="preview"
+                height={500}
+                visibleDragbar={false}
+                style={{ height: "100%" }}
+              />
             </div>
 
             {summary && (

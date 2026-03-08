@@ -10,6 +10,7 @@ interface SelectedAccountsTableProps {
   onGenerateReport: (id: string) => void;
   onGenerateMissing: () => void;
   onOpenReport: (id: string) => void;
+  generatingIds: Set<string>;
 }
 
 function PropositionBadge({ type }: { type: string }) {
@@ -35,8 +36,10 @@ export function SelectedAccountsTable({
   onGenerateReport,
   onGenerateMissing,
   onOpenReport,
+  generatingIds,
 }: SelectedAccountsTableProps) {
   const hasUngenerated = accounts.some((a) => !reports.has(a.id));
+  const isAnyGenerating = generatingIds.size > 0;
 
   return (
     <div className="flex flex-col" style={{ maxHeight: "40%" }}>
@@ -47,9 +50,17 @@ export function SelectedAccountsTable({
         {hasUngenerated && (
           <button
             onClick={onGenerateMissing}
-            className="text-xs px-3 py-1 rounded bg-zinc-800 text-white hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300 transition-colors"
+            disabled={isAnyGenerating}
+            className="text-xs px-3 py-1 rounded bg-zinc-800 text-white hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
           >
-            Generate missing reports
+            {isAnyGenerating ? (
+              <>
+                <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Generating...
+              </>
+            ) : (
+              "Generate missing reports"
+            )}
           </button>
         )}
       </div>
@@ -94,9 +105,10 @@ export function SelectedAccountsTable({
                     ) : (
                       <button
                         onClick={() => onGenerateReport(account.id)}
-                        className="text-xs px-2 py-0.5 rounded border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                        disabled={isAnyGenerating}
+                        className="text-xs px-2 py-0.5 rounded border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        Generate...
+                        {generatingIds.has(account.id) ? "Generating..." : "Generate..."}
                       </button>
                     )}
                   </td>

@@ -6,6 +6,7 @@ import {
   accountInvoicingUsages,
   accountIntegrationsUsages,
   accountBudgets,
+  historicalDeals as historicalDealsTable,
   reports as reportsTable,
 } from "./db/schema";
 import { Account, AccountSummary, PropositionType, Report } from "@/components/contracts/types";
@@ -121,14 +122,50 @@ export async function createReport(accountId: string): Promise<Report | null> {
   return report;
 }
 
-export async function updateReportContent(reportId: string, content: string): Promise<Report | undefined> {
+export async function createReportFromData(
+  accountId: string,
+  data: { content: string; proposition_type: string; success_percent: number; intervene: boolean }
+): Promise<Report | null> {
+  const account = await getAccount(accountId);
+  if (!account) return null;
+
   const now = new Date().toISOString();
+  const report: Report = {
+    id: crypto.randomUUID(),
+    account_id: accountId,
+    proposition_type: data.proposition_type as PropositionType,
+    success_percent: data.success_percent,
+    intervene: data.intervene,
+    content: data.content,
+    generated_at: now,
+    created_at: now,
+    updated_at: now,
+  };
+  await db.insert(reportsTable).values(report);
+  return report;
+}
+
+export async function updateReportContent(
+  reportId: string,
+  content: string,
+  metadata?: { proposition_type?: string; success_percent?: number; intervene?: boolean }
+): Promise<Report | undefined> {
+  const now = new Date().toISOString();
+  const updates: Record<string, unknown> = { content, updated_at: now };
+  if (metadata?.proposition_type) updates.proposition_type = metadata.proposition_type;
+  if (metadata?.success_percent !== undefined) updates.success_percent = metadata.success_percent;
+  if (metadata?.intervene !== undefined) updates.intervene = metadata.intervene;
   await db
     .update(reportsTable)
-    .set({ content, updated_at: now })
+    .set(updates)
     .where(eq(reportsTable.id, reportId));
   const rows = await db.select().from(reportsTable).where(eq(reportsTable.id, reportId));
   return rows[0] as Report | undefined;
+}
+
+export async function getHistoricalDeals() {
+  const rows = await db.select().from(historicalDealsTable);
+  return rows;
 }
 
 export async function createReports(accountIds: string[]): Promise<Report[]> {

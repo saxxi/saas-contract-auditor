@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAgent } from "@copilotkit/react-core/v2";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/use-accounts";
-import { useAccountReport, useAccountReports, useGenerateReport, useGenerateReportsBatch } from "@/hooks/use-account-reports";
+import { useAccountReport, useAccountReports } from "@/hooks/use-account-reports";
 import { useAccountSummaries } from "@/hooks/use-account-summaries";
 import { SelectedAccountsTable } from "./selected-accounts-table";
 import { AccountsTable } from "./accounts-table";
@@ -16,11 +17,9 @@ interface AccountReportEntry {
 
 export function ContractsCanvas() {
   const { agent } = useAgent();
+  const queryClient = useQueryClient();
   const { data: accounts = [] } = useAccounts();
   const { data: reports = [] } = useAccountReports();
-  const generateReport = useGenerateReport();
-  const generateBatch = useGenerateReportsBatch();
-
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   // Reports come sorted by generated_at desc; first entry per account is the latest
   const reportsById = useMemo(() => {
@@ -40,6 +39,21 @@ export function ContractsCanvas() {
   const selectedIdList = useMemo(() => Array.from(selectedIds), [selectedIds]);
   const { data: summaries = [] } = useAccountSummaries(selectedIdList);
   const summariesById = useMemo(() => new Map(summaries.map((s) => [s.id, s])), [summaries]);
+
+  // Track button states separately from general agent activity
+  const [isFindingOpportunities, setIsFindingOpportunities] = useState(false);
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+  const wasRunningRef = useRef(false);
+
+  // Invalidate reports cache and reset button state when agent finishes
+  useEffect(() => {
+    if (wasRunningRef.current && !agent.isRunning) {
+      queryClient.invalidateQueries({ queryKey: ["account-reports"] });
+      setIsFindingOpportunities(false);
+      setGeneratingIds(new Set());
+    }
+    wasRunningRef.current = agent.isRunning;
+  }, [agent.isRunning, queryClient]);
 
   // Log agent state changes
   useEffect(() => {
@@ -68,41 +82,43 @@ export function ContractsCanvas() {
   }, [agent]);
 
   const handleGenerateReport = useCallback((id: string) => {
-    generateReport.mutate(id, {
-      onSuccess: () => {
-        const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
-        agent.setState({
-          ...agent.state,
-          account_reports: existing.map((ar) =>
-            ar.id === id ? { ...ar, status: "generated" as const } : ar
-          ),
-        });
-      },
+    if (agent.isRunning) return;
+    setGeneratingIds(new Set([id]));
+    agent.setMessages([]);
+    const accountName = accountsById.get(id)?.name ?? id;
+    agent.addMessage({
+      role: "user",
+      id: crypto.randomUUID(),
+      content: `Generate a report for account ${id} (${accountName}).`,
     });
-  }, [generateReport, agent]);
+    agent.runAgent();
+  }, [agent, accountsById]);
 
   const handleGenerateMissing = useCallback(() => {
+    if (agent.isRunning) return;
     const pendingIds = accountReports
       .filter((ar) => !reportsById.has(ar.id))
       .map((ar) => ar.id);
     if (pendingIds.length === 0) return;
-    generateBatch.mutate(pendingIds, {
-      onSuccess: () => {
-        const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
-        const generatedSet = new Set(pendingIds);
-        agent.setState({
-          ...agent.state,
-          account_reports: existing.map((ar) =>
-            generatedSet.has(ar.id) ? { ...ar, status: "generated" as const } : ar
-          ),
-        });
-      },
+    setGeneratingIds(new Set(pendingIds));
+    agent.setMessages([]);
+    const names = pendingIds.map((id) => {
+      const name = accountsById.get(id)?.name ?? id;
+      return `${id} (${name})`;
     });
-  }, [accountReports, reportsById, generateBatch, agent]);
+    agent.addMessage({
+      role: "user",
+      id: crypto.randomUUID(),
+      content: `Generate reports for these accounts: ${names.join(", ")}.`,
+    });
+    agent.runAgent();
+  }, [accountReports, reportsById, agent, accountsById]);
 
   const handleFindOpportunities = useCallback(async () => {
+    if (agent.isRunning) return;
     const unselected = accounts.filter((a) => !selectedIds.has(a.id));
     if (unselected.length === 0) return;
+    setIsFindingOpportunities(true);
 
     const unselectedIds = unselected.map((a) => a.id).join(",");
     const res = await fetch(`/api/account_summaries?account_ids=${unselectedIds}`);
@@ -155,13 +171,14 @@ export function ContractsCanvas() {
         onGenerateReport={handleGenerateReport}
         onGenerateMissing={handleGenerateMissing}
         onOpenReport={setFocusedAccount}
+        generatingIds={generatingIds}
       />
       <AccountsTable
         accounts={unselectedAccounts}
         reports={reportsById}
         onSelect={handleSelect}
         onFindOpportunities={handleFindOpportunities}
-        isFinding={agent.isRunning}
+        isFinding={isFindingOpportunities}
       />
       {openAccount && openReport && (
         <ReportModal
@@ -169,8 +186,6 @@ export function ContractsCanvas() {
           report={openReport}
           summary={openSummary}
           onClose={() => setFocusedAccount(null)}
-          onRegenerate={handleGenerateReport}
-          isRegenerating={generateReport.isPending}
         />
       )}
     </div>
