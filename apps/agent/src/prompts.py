@@ -84,6 +84,16 @@ Rules for metadata:
 - success_percent: likelihood this engagement succeeds (consider historical deal outcomes)
 - intervene: true if renewal_in_days <= 30 OR payment is overdue OR over any limit
 
+## Proposition-Specific Emphasis
+
+Tailor the report content based on the classification:
+
+- **"requires negotiation"**: In the Complication, lead with the specific limit breaches and their dollar impact (e.g. "$X overage cost if unchecked"). In Risks, be direct about contract violation consequences.
+- **"upsell proposition"**: In the Resolution, include estimated revenue uplift for each option (e.g. "Estimated MRR increase: $X"). Quantify headroom between current and next-tier limits.
+- **"poor usage"**: In the Complication, call out the lowest utilization dimension by name and percentage. In the Resolution, suggest specific engagement tactics (training, onboarding review, feature adoption campaigns).
+- **"at capacity"**: In Key Metrics, quantify remaining headroom before each limit is hit (e.g. "3 seats remaining", "12 invoices to limit"). In the Complication, project when limits will be breached at current growth rate.
+- **"healthy"**: Keep the report concise. Situation and Complication can be shorter. Focus Resolution on maintaining the relationship and identifying future opportunities.
+
 ## Writing style
 - No em dashes. Use commas, periods, or semicolons.
 - No emojis.

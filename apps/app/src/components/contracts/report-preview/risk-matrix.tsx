@@ -2,6 +2,7 @@ import type { RiskRow } from "./parse-report";
 
 interface RiskMatrixProps {
   risks: RiskRow[];
+  bold?: boolean; // Bolder tints for negotiation-type reports
 }
 
 const likelihoodStyles: Record<string, string> = {
@@ -11,12 +12,20 @@ const likelihoodStyles: Record<string, string> = {
   low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
 };
 
-export function RiskMatrix({ risks }: RiskMatrixProps) {
+const boldLikelihoodStyles: Record<string, string> = {
+  high: "bg-red-200 text-red-800 dark:bg-red-800/60 dark:text-red-300",
+  med: "bg-amber-200 text-amber-800 dark:bg-amber-800/60 dark:text-amber-300",
+  medium: "bg-amber-200 text-amber-800 dark:bg-amber-800/60 dark:text-amber-300",
+  low: "bg-emerald-200 text-emerald-800 dark:bg-emerald-800/60 dark:text-emerald-300",
+};
+
+export function RiskMatrix({ risks, bold }: RiskMatrixProps) {
   return (
     <div className="space-y-2">
       {risks.map((r, i) => {
         const key = r.likelihood.toLowerCase().trim();
-        const badgeStyle = likelihoodStyles[key] ?? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
+        const styles = bold ? boldLikelihoodStyles : likelihoodStyles;
+        const badgeStyle = styles[key] ?? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
         return (
           <div
             key={i}

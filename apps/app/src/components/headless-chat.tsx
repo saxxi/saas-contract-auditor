@@ -6,6 +6,7 @@ export const HeadlessChat = () => {
     const [message, setMessage] = useState("")
 
     const sendMessage = useCallback((message: string) => {
+        if (agent.isRunning) return;
         agent.addMessage({
             role: "user",
             id: crypto.randomUUID(),

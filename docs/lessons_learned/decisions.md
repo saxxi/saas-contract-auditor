@@ -39,3 +39,8 @@
 - Recharts v3 removed `clockWise` prop from `RadialBar` — just omit it
 - Report preview uses custom React components per section (parsed from markdown), with `react-markdown` fallback for unrecognized sections. Keeps markdown as DB source of truth
 - Google Fonts `@import url(...)` must come BEFORE `@import "tailwindcss"` in globals.css or CSS spec warns about ordering
+- Recharts Tooltip `formatter` callback has `value: number | undefined` — do not annotate the param as `number`, let TS infer or use untyped
+- Theme colors use string-keyed lookup maps (e.g. `Record<string, string>`) instead of Tailwind template literals because Tailwind can't tree-shake dynamically constructed class names
+- Report sections rendered in theme-defined order via `sectionOrder` array in theme config, using a slug-to-renderer map pattern
+- Inline section editing: `replaceSectionBody()` splices edited markdown back using `startLine`/`endLine` tracked during parsing. Only one section editable at a time (state in parent)
+- Report modal uses `mode: "preview" | "raw"` instead of boolean `isEditing` — preview mode has inline editing, raw mode opens full MDEditor

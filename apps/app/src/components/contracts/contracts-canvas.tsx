@@ -81,6 +81,14 @@ export function ContractsCanvas() {
     });
   }, [agent]);
 
+  const safeRunAgent = useCallback(() => {
+    try {
+      if (!agent.isRunning) agent.runAgent();
+    } catch {
+      // "Thread already running" — CopilotChat may have already triggered it
+    }
+  }, [agent]);
+
   const handleGenerateReport = useCallback((id: string) => {
     if (agent.isRunning) return;
     setGeneratingIds(new Set([id]));
@@ -91,8 +99,8 @@ export function ContractsCanvas() {
       id: crypto.randomUUID(),
       content: `Generate a report for account ${id} (${accountName}).`,
     });
-    agent.runAgent();
-  }, [agent, accountsById]);
+    safeRunAgent();
+  }, [agent, accountsById, safeRunAgent]);
 
   const handleGenerateMissing = useCallback(() => {
     if (agent.isRunning) return;
@@ -111,8 +119,8 @@ export function ContractsCanvas() {
       id: crypto.randomUUID(),
       content: `Generate reports for these accounts: ${names.join(", ")}.`,
     });
-    agent.runAgent();
-  }, [accountReports, reportsById, agent, accountsById]);
+    safeRunAgent();
+  }, [accountReports, reportsById, agent, accountsById, safeRunAgent]);
 
   const handleFindOpportunities = useCallback(async () => {
     if (agent.isRunning) return;
@@ -140,13 +148,17 @@ export function ContractsCanvas() {
       };
     });
 
+    if (agent.isRunning) {
+      setIsFindingOpportunities(false);
+      return;
+    }
     agent.addMessage({
       role: "user",
       id: crypto.randomUUID(),
       content: `Analyze these unselected accounts and find the top opportunities for upsell, contract renegotiation, or accounts at risk of churning. Select the most promising ones using the select_accounts tool. Here are the accounts:\n\n${JSON.stringify(summary, null, 2)}`,
     });
-    agent.runAgent();
-  }, [accounts, selectedIds, agent]);
+    safeRunAgent();
+  }, [accounts, selectedIds, agent, safeRunAgent]);
 
   const setFocusedAccount = useCallback((id: string | null) => {
     agent.setState({ ...agent.state, focused_account_id: id });

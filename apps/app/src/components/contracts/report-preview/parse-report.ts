@@ -7,6 +7,8 @@ export interface ParsedSection {
   heading: string;
   body: string;
   table?: ParsedTable;
+  startLine: number;  // line index where heading is (or 0 for preamble)
+  endLine: number;    // exclusive end line index
 }
 
 export interface ParsedReport {
@@ -37,27 +39,49 @@ export function parseReport(markdown: string): ParsedReport {
   const sections: ParsedSection[] = [];
   let currentHeading = "";
   let currentLines: string[] = [];
+  let currentStartLine = 0;
 
-  const flush = () => {
+  const flush = (endLine: number) => {
     if (currentHeading || currentLines.length > 0) {
       const body = currentLines.join("\n").trim();
       const table = parseTable(currentLines);
-      sections.push({ heading: currentHeading, body, table });
+      sections.push({ heading: currentHeading, body, table, startLine: currentStartLine, endLine });
     }
   };
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     if (line.startsWith("### ")) {
-      flush();
+      flush(i);
       currentHeading = line.replace(/^###\s+/, "").trim();
       currentLines = [];
+      currentStartLine = i;
     } else {
       currentLines.push(line);
     }
   }
-  flush();
+  flush(lines.length);
 
   return { sections };
+}
+
+export function replaceSectionBody(
+  fullMarkdown: string,
+  section: ParsedSection,
+  newBody: string
+): string {
+  const lines = fullMarkdown.split("\n");
+  // Body starts on the line after the heading (or at startLine if no heading)
+  const bodyStart = section.heading ? section.startLine + 1 : section.startLine;
+  const replacement = section.heading
+    ? [`### ${section.heading}`, newBody]
+    : [newBody];
+  const result = [
+    ...lines.slice(0, section.startLine),
+    ...replacement,
+    ...lines.slice(section.endLine),
+  ];
+  return result.join("\n");
 }
 
 // Extract options table (Resolution section has a transposed table: rows are attributes, columns are options)

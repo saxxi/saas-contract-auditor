@@ -38,7 +38,7 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
   const updateReport = useUpdateReportContent();
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
   const [content, setContent] = useState(report.content);
-  const [isEditing, setIsEditing] = useState(false);
+  const [mode, setMode] = useState<"preview" | "raw">("preview");
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -60,11 +60,8 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
     setContent(report.content);
   }, [report.id, report.content]);
 
-  const handleContentChange = useCallback(
-    (value: string | undefined) => {
-      const md = value ?? "";
-      setContent(md);
-
+  const persistContent = useCallback(
+    (md: string) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       setSaveStatus("idle");
       debounceRef.current = setTimeout(() => {
@@ -85,6 +82,23 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
       });
     },
     [updateReport, agent]
+  );
+
+  const handleRawChange = useCallback(
+    (value: string | undefined) => {
+      const md = value ?? "";
+      setContent(md);
+      persistContent(md);
+    },
+    [persistContent]
+  );
+
+  const handlePreviewChange = useCallback(
+    (newMarkdown: string) => {
+      setContent(newMarkdown);
+      persistContent(newMarkdown);
+    },
+    [persistContent]
   );
 
   useEffect(() => {
@@ -136,14 +150,14 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
             {saveStatus === "saving" && <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Saving...</span>}
             {saveStatus === "saved" && <span className="text-[10px] text-emerald-500 uppercase tracking-wider">Saved</span>}
             <button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => setMode(mode === "raw" ? "preview" : "raw")}
               className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded cursor-pointer transition-colors ${
-                isEditing
+                mode === "raw"
                   ? "bg-blue-600 text-white"
                   : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
               }`}
             >
-              {isEditing ? "Preview" : "Edit"}
+              {mode === "raw" ? "Preview" : "Raw Markdown"}
             </button>
             <button
               onClick={onClose}
@@ -195,11 +209,11 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
         )}
 
         {/* Report content */}
-        <div className={`flex-1 min-h-0 ${isEditing ? "overflow-hidden" : "overflow-y-auto"}`} data-color-mode={isDark ? "dark" : "light"}>
-          {isEditing ? (
+        <div className={`flex-1 min-h-0 ${mode === "raw" ? "overflow-hidden" : "overflow-y-auto"}`} data-color-mode={isDark ? "dark" : "light"}>
+          {mode === "raw" ? (
             <MDEditor
               value={content}
-              onChange={handleContentChange}
+              onChange={handleRawChange}
               preview="live"
               height={500}
               visibleDragbar={false}
@@ -210,6 +224,8 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
               content={content}
               propositionType={report.proposition_type}
               successPercent={report.success_percent}
+              editable
+              onContentChange={handlePreviewChange}
             />
           )}
         </div>
