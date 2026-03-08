@@ -44,3 +44,10 @@
 - Report sections rendered in theme-defined order via `sectionOrder` array in theme config, using a slug-to-renderer map pattern
 - Inline section editing: `replaceSectionBody()` splices edited markdown back using `startLine`/`endLine` tracked during parsing. Only one section editable at a time (state in parent)
 - Report modal uses `mode: "preview" | "raw"` instead of boolean `isEditing` — preview mode has inline editing, raw mode opens full MDEditor
+- Merged two tables (Selected Accounts + Accounts) into one unified table. Selected rows highlighted, sorted to top. Simpler layout, no row movement between tables
+- "Find Opportunities" uses a dedicated `opportunities_graph.py` LangGraph pipeline — data fetching happens server-side, no JSON blob in chat. Uses `OPPORTUNITIES_MODEL` env var for a potentially lighter model
+- "Find Opportunities" replaces selection (clears existing, selects only agent's picks). Frontend clears `account_reports` immediately on click, agent tool sets fresh selection
+- Never send large data payloads as visible chat messages. Use agent tools/graphs to fetch data server-side instead
+- Agent `select_accounts` is low-risk — system prompt explicitly says no confirmation needed. When user requests N accounts, select exactly N
+- Split button pattern for batch sizes (5/10/20/50/100/200) — default small batch, user can scale up. Keeps LLM analysis fast
+- "Generate reports for selected" always regenerates for all selected accounts, not just those missing reports

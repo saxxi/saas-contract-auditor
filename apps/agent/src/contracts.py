@@ -11,6 +11,7 @@ from typing import TypedDict, Literal
 
 from src.prompts import REPORT_UPDATE_PROMPT
 from src.report_graph import build_report_graph, _parse_report_metadata, _extract_report_body
+from src.opportunities_graph import build_opportunities_graph
 
 API_BASE = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
 MODEL_NAME = os.getenv("REPORT_MODEL", "gpt-5-mini")
@@ -39,9 +40,11 @@ class AgentState(BaseAgentState):
 @tool
 def select_accounts(account_ids: list[str], runtime: ToolRuntime) -> Command:
     """
-    Select accounts by their IDs to move them to the Selected Accounts table for review.
+    Select accounts by their IDs to mark them as selected in the accounts table.
     Call this with the account IDs you want to recommend as opportunities.
     Each selected account gets a 'pending' status until a report is generated.
+    After selecting, tell the user to review the selection and click
+    'Generate reports for selected' when they are ready.
     """
     existing = runtime.state.get("account_reports", [])
     existing_ids = {ar["id"] for ar in existing}
@@ -230,8 +233,51 @@ async def update_report(account_id: str, changes: str, runtime: ToolRuntime) -> 
     })
 
 
+@tool
+async def find_opportunities(account_ids: list[str], runtime: ToolRuntime) -> Command:
+    """
+    Analyze unselected accounts to find the best opportunities for upsell,
+    renegotiation, or churn risk. Fetches data, runs LLM analysis, and
+    pre-selects the top candidates.
+    The frontend calls this with the IDs of unselected accounts.
+    Do NOT ask for confirmation before calling this tool.
+    """
+    graph = build_opportunities_graph()
+    result = await graph.ainvoke({
+        "account_ids": account_ids,
+        "analysis": "",
+        "recommended_ids": [],
+    })
+
+    analysis = result.get("analysis", "No analysis produced.")
+    recommended_ids = result.get("recommended_ids", [])
+
+    # Replace selection with only the recommended accounts
+    new_entries = [
+        AccountReport(id=aid, status="pending", report=None)
+        for aid in recommended_ids
+    ]
+
+    n_selected = len(new_entries)
+    footer = ""
+    if n_selected > 0:
+        ids_str = ", ".join(a["id"] for a in new_entries)
+        footer = f"\n\nI've pre-selected {n_selected} accounts: {ids_str}. Review the selection, adjust if needed, then click **Generate reports for selected** when you're ready."
+
+    return Command(update={
+        "account_reports": new_entries,
+        "messages": [
+            ToolMessage(
+                content=analysis + footer,
+                tool_call_id=runtime.tool_call_id,
+            )
+        ],
+    })
+
+
 contracts_tools = [
     select_accounts,
+    find_opportunities,
     get_account_reports,
     generate_reports,
     get_report_content,

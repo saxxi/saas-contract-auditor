@@ -6,7 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAccounts } from "@/hooks/use-accounts";
 import { useAccountReport, useAccountReports } from "@/hooks/use-account-reports";
 import { useAccountSummaries } from "@/hooks/use-account-summaries";
-import { SelectedAccountsTable } from "./selected-accounts-table";
 import { AccountsTable } from "./accounts-table";
 import { ReportModal } from "./report-modal";
 
@@ -60,9 +59,6 @@ export function ContractsCanvas() {
     console.log("[agent state]", agent.state);
   }, [agent.state]);
 
-  const selectedAccounts = accounts.filter((a) => selectedIds.has(a.id));
-  const unselectedAccounts = accounts.filter((a) => !selectedIds.has(a.id));
-
   const handleSelect = useCallback((id: string) => {
     const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
     if (existing.some((ar) => ar.id === id)) return;
@@ -78,6 +74,13 @@ export function ContractsCanvas() {
     agent.setState({
       ...agent.state,
       account_reports: existing.filter((ar) => ar.id !== id),
+    });
+  }, [agent]);
+
+  const handleDeselectAll = useCallback(() => {
+    agent.setState({
+      ...agent.state,
+      account_reports: [],
     });
   }, [agent]);
 
@@ -102,11 +105,9 @@ export function ContractsCanvas() {
     safeRunAgent();
   }, [agent, accountsById, safeRunAgent]);
 
-  const handleGenerateMissing = useCallback(() => {
+  const handleGenerateSelected = useCallback(() => {
     if (agent.isRunning) return;
-    const pendingIds = accountReports
-      .filter((ar) => !reportsById.has(ar.id))
-      .map((ar) => ar.id);
+    const pendingIds = accountReports.map((ar) => ar.id);
     if (pendingIds.length === 0) return;
     setGeneratingIds(new Set(pendingIds));
     agent.setMessages([]);
@@ -122,40 +123,20 @@ export function ContractsCanvas() {
     safeRunAgent();
   }, [accountReports, reportsById, agent, accountsById, safeRunAgent]);
 
-  const handleFindOpportunities = useCallback(async () => {
+  const handleFindOpportunities = useCallback((batchSize: number) => {
     if (agent.isRunning) return;
     const unselected = accounts.filter((a) => !selectedIds.has(a.id));
     if (unselected.length === 0) return;
     setIsFindingOpportunities(true);
 
-    const unselectedIds = unselected.map((a) => a.id).join(",");
-    const res = await fetch(`/api/account_summaries?account_ids=${unselectedIds}`);
-    const unselectedSummaries = await res.json();
+    // Clear existing selection — find_opportunities replaces it
+    agent.setState({ ...agent.state, account_reports: [] });
 
-    const summary = unselected.map((a) => {
-      const s = unselectedSummaries.find((us: { id: string }) => us.id === a.id);
-      if (!s) return { id: a.id, name: a.name };
-      return {
-        id: a.id,
-        name: a.name,
-        tier: s.budget_report.tier,
-        mrr: s.budget_report.mrr,
-        renewal_in_days: s.budget_report.renewal_in_days,
-        payment_status: s.budget_report.payment_status,
-        user_utilization: `${s.active_users_report.active_users}/${s.active_users_report.seat_limit}`,
-        invoice_utilization: `${s.invoicing_usage_report.monthly_invoices}/${s.invoicing_usage_report.invoice_limit}`,
-        integration_utilization: `${s.integrations_usage_report.active_integrations}/${s.integrations_usage_report.integration_limit}`,
-      };
-    });
-
-    if (agent.isRunning) {
-      setIsFindingOpportunities(false);
-      return;
-    }
+    const batch = unselected.slice(0, batchSize).map((a) => a.id);
     agent.addMessage({
       role: "user",
       id: crypto.randomUUID(),
-      content: `Analyze these unselected accounts and find the top opportunities for upsell, contract renegotiation, or accounts at risk of churning. Select the most promising ones using the select_accounts tool. Here are the accounts:\n\n${JSON.stringify(summary, null, 2)}`,
+      content: `Find opportunities among these accounts: ${batch.join(", ")}`,
     });
     safeRunAgent();
   }, [accounts, selectedIds, agent, safeRunAgent]);
@@ -175,21 +156,19 @@ export function ContractsCanvas() {
 
   return (
     <div className="relative h-full flex flex-col gap-3 p-4 overflow-hidden">
-      <SelectedAccountsTable
-        accounts={selectedAccounts}
+      <AccountsTable
+        accounts={accounts}
+        selectedIds={selectedIds}
         reports={reportsById}
         summaries={summariesById}
-        onDeselect={handleDeselect}
-        onGenerateReport={handleGenerateReport}
-        onGenerateMissing={handleGenerateMissing}
-        onOpenReport={setFocusedAccount}
-        generatingIds={generatingIds}
-      />
-      <AccountsTable
-        accounts={unselectedAccounts}
-        reports={reportsById}
         onSelect={handleSelect}
+        onDeselect={handleDeselect}
+        onDeselectAll={handleDeselectAll}
+        onGenerateReport={handleGenerateReport}
+        onGenerateSelected={handleGenerateSelected}
+        onOpenReport={setFocusedAccount}
         onFindOpportunities={handleFindOpportunities}
+        generatingIds={generatingIds}
         isFinding={isFindingOpportunities}
       />
       {openAccount && openReport && (
