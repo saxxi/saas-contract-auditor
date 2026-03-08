@@ -36,3 +36,6 @@
 - Removed Python `markdown` library and all markdown-to-HTML conversion -- LLM outputs markdown, stored as-is, rendered client-side
 - `@uiw/react-md-editor` must use `dynamic(() => import(...), { ssr: false })` in Next.js (uses browser APIs)
 - Track `generatingIds: Set<string>` instead of boolean `isGenerating` for per-account button state
+- Recharts v3 removed `clockWise` prop from `RadialBar` — just omit it
+- Report preview uses custom React components per section (parsed from markdown), with `react-markdown` fallback for unrecognized sections. Keeps markdown as DB source of truth
+- Google Fonts `@import url(...)` must come BEFORE `@import "tailwindcss"` in globals.css or CSS spec warns about ordering

@@ -7,6 +7,10 @@ import { Account, AccountSummary, Report } from "./types";
 import { useUpdateReportContent } from "@/hooks/use-account-reports";
 
 const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
+const ReportPreview = dynamic(
+  () => import("./report-preview/report-preview").then((m) => ({ default: m.ReportPreview })),
+  { ssr: false }
+);
 
 interface ReportModalProps {
   account: Account;
@@ -191,16 +195,23 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
         )}
 
         {/* Report content */}
-        <div className="flex-1 min-h-0 overflow-hidden" data-color-mode={isDark ? "dark" : "light"}>
-          <MDEditor
-            value={content}
-            onChange={handleContentChange}
-            preview={isEditing ? "live" : "preview"}
-            height={500}
-            visibleDragbar={false}
-            hideToolbar={!isEditing}
-            style={{ height: "100%", border: "none", borderRadius: 0 }}
-          />
+        <div className={`flex-1 min-h-0 ${isEditing ? "overflow-hidden" : "overflow-y-auto"}`} data-color-mode={isDark ? "dark" : "light"}>
+          {isEditing ? (
+            <MDEditor
+              value={content}
+              onChange={handleContentChange}
+              preview="live"
+              height={500}
+              visibleDragbar={false}
+              style={{ height: "100%", border: "none", borderRadius: 0 }}
+            />
+          ) : (
+            <ReportPreview
+              content={content}
+              propositionType={report.proposition_type}
+              successPercent={report.success_percent}
+            />
+          )}
         </div>
       </div>
     </div>

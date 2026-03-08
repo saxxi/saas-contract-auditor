@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap");
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -8,6 +9,10 @@
   --chart-tooltip-bg: #ffffff;
   --chart-tooltip-border: #e5e7eb;
   --chart-axis: #6b7280;
+  --consulting-blue: #003A70;
+  --consulting-gold: #C5A900;
+  --consulting-red: #B91C1C;
+  --consulting-emerald: #047857;
 }
 
 :root.dark {
@@ -16,6 +21,14 @@
   --chart-tooltip-bg: #27272a;
   --chart-tooltip-border: #3f3f46;
   --chart-axis: #a1a1aa;
+  --consulting-blue: #4A90D9;
+  --consulting-gold: #F0D060;
+  --consulting-red: #EF4444;
+  --consulting-emerald: #34D399;
+}
+
+@theme {
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
 }
 
 body {
