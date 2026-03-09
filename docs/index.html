@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contracts Auditor — AI-Powered Contract Intelligence</title>
+  <title>Contracts Auditor, Contract Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -230,6 +230,75 @@
       background: rgba(255, 255, 255, 0.1);
       border-color: rgba(255, 255, 255, 0.18);
       transform: translateY(-1px);
+    }
+
+    /* ── Hero Screenshot ── */
+    .hero-screenshot {
+      padding: 0 24px 80px;
+      text-align: center;
+    }
+
+    .hero-screenshot .caption {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #737373;
+      margin-bottom: 24px;
+      letter-spacing: -0.01em;
+    }
+
+    .hero-screenshot img {
+      max-width: 1100px;
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ── Report Showcase ── */
+    .report-showcase {
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    .report-showcase .caption {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #737373;
+      letter-spacing: -0.01em;
+    }
+
+    .report-showcase .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .report-showcase img {
+      max-width: 900px;
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    }
+
+    .report-showcase .sample-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.9rem;
+      color: #a3a3a3;
+      transition: all 0.2s;
+    }
+
+    .report-showcase .sample-link:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #e5e5e5;
     }
 
     /* ── Features ── */
@@ -596,13 +665,15 @@
   <!-- Nav -->
   <nav>
     <div class="nav-inner">
-      <a href="#" class="nav-logo">Contracts Auditor</a>
+      <a href="https://github.com/saxxi/contracts_auditor" class="nav-logo">Contracts Auditor</a>
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
         <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="architecture.html">Architecture</a></li>
         <li><a href="#tech-stack">Tech Stack</a></li>
         <li><a href="#pricing">Pricing</a></li>
-        <li><a href="#">GitHub</a></li>
+        <li><a href="https://github.com/saxxi/contracts_auditor">GitHub</a></li>
+        <li><a href="https://github.com/saxxi/contracts_auditor#getting-started">Docs</a></li>
       </ul>
     </div>
   </nav>
@@ -611,21 +682,30 @@
   <section class="hero" id="hero">
     <div class="hero-content">
       <div class="hero-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><circle cx="11.5" cy="15.5" r="2.5"/><line x1="13.27" y1="17.27" x2="15" y2="19"/></svg>
         Open Source &middot; AGPL-3.0
       </div>
       <h1>Contracts <span>Auditor</span></h1>
       <p class="hero-tagline">AI-powered contract intelligence for account teams</p>
-      <p class="hero-description">Identify upsell opportunities, flag renegotiation risks, and predict churn across your entire client portfolio &mdash; automatically.</p>
+      <p class="hero-description">Identify upsell opportunities, flag renegotiation risks, and predict churn across your entire client portfolio, automatically.</p>
       <div class="hero-buttons">
-        <a href="#" class="btn btn-primary">
+        <a href="https://github.com/saxxi/contracts_auditor" class="btn btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
           View on GitHub
         </a>
-        <a href="mailto:a.saxena.email@gmail.com" class="btn btn-secondary">Get Commercial License</a>
+        <a href="mailto:a.saxena.email@gmail.com" class="btn btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Get Commercial License
+        </a>
       </div>
     </div>
   </section>
+
+  <!-- Hero Screenshot -->
+  <div class="hero-screenshot">
+    <p class="caption">Discuss in natural language a plan to optimize new deals</p>
+    <img src="images/main_screen.png" alt="Contracts Auditor Demo Dashboard">
+  </div>
 
   <!-- Features -->
   <section id="features">
@@ -646,7 +726,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           </div>
           <h3>Consulting-Grade Reports</h3>
-          <p>Auto-generated reports with visualizations, usage analytics, and actionable recommendations.</p>
+          <p>Auto-generated reports with visualizations, usage analytics, and actionable recommendations. Each block is editable individually by hand or via chat; the AI detects external changes and persists them to the database.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">
@@ -680,6 +760,18 @@
     </div>
   </section>
 
+  <!-- Report Showcase -->
+  <div class="report-showcase">
+    <div class="container">
+      <p class="caption">Professional, consultant-grade reports</p>
+      <img src="images/report_popup.png" alt="Generated Report Detail">
+      <a href="images/report_popup.png" target="_blank" class="sample-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        View sample report
+      </a>
+    </div>
+  </div>
+
   <!-- How It Works -->
   <section id="how-it-works">
     <div class="container">
@@ -700,8 +792,14 @@
         <div class="step">
           <div class="step-number">3</div>
           <h3>Take Action</h3>
-          <p>Review, refine, and export your deliverables &mdash; then close more deals.</p>
+          <p>Review, refine, and export your deliverables, then close more deals.</p>
         </div>
+      </div>
+      <div style="text-align:center;margin-top:56px">
+        <a href="architecture.html" class="btn btn-secondary" style="font-size:1.05rem;padding:18px 36px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          See the full technical architecture
+        </a>
       </div>
     </div>
   </section>
@@ -765,7 +863,7 @@
             <li>Community support</li>
             <li>Must open-source your application</li>
           </ul>
-          <a href="#" class="btn btn-secondary">View on GitHub</a>
+          <a href="https://github.com/saxxi/contracts_auditor" class="btn btn-secondary">View on GitHub</a>
         </div>
 
         <!-- Personal / Startup -->
@@ -799,7 +897,7 @@
         </div>
 
       </div>
-      <p class="pricing-note">All commercial licenses are perpetual &mdash; pay once, use forever.</p>
+      <p class="pricing-note">All commercial licenses are perpetual - pay once, use forever.</p>
     </div>
   </section>
 
@@ -809,8 +907,8 @@
       <div class="footer-left">&copy; 2026 Contracts Auditor. All rights reserved.</div>
       <ul class="footer-links">
         <li><a href="mailto:a.saxena.email@gmail.com">Contact</a></li>
-        <li><a href="#">AGPL-3.0 License</a></li>
-        <li><a href="#">GitHub</a></li>
+        <li><a href="https://github.com/saxxi/contracts_auditor/blob/main/LICENSE">AGPL-3.0 License</a></li>
+        <li><a href="https://github.com/saxxi/contracts_auditor">GitHub</a></li>
       </ul>
     </div>
   </footer>

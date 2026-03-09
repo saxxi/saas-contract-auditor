@@ -88,7 +88,7 @@ export function ContractsCanvas() {
     try {
       if (!agent.isRunning) agent.runAgent();
     } catch {
-      // "Thread already running" — CopilotChat may have already triggered it
+      // "Thread already running", CopilotChat may have already triggered it
     }
   }, [agent]);
 
@@ -129,7 +129,7 @@ export function ContractsCanvas() {
     if (unselected.length === 0) return;
     setIsFindingOpportunities(true);
 
-    // Clear existing selection — find_opportunities replaces it
+    // Clear existing selection, find_opportunities replaces it
     agent.setState({ ...agent.state, account_reports: [] });
 
     const batch = unselected.slice(0, batchSize).map((a) => a.id);

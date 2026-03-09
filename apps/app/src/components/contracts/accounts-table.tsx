@@ -233,7 +233,7 @@ export function AccountsTable({
                         {generatingIds.has(account.id) ? "Generating..." : "Generate..."}
                       </button>
                     ) : (
-                      <span className="text-xs text-zinc-400">—</span>
+                      <span className="text-xs text-zinc-400">--</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-zinc-500 font-mono text-xs">{account.id}</td>

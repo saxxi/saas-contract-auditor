@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture - Contracts Auditor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-size: 16px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0a0a0a;
+      color: #e5e5e5;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: #60a5fa;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      color: #93bbfc;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(10, 10, 10, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.875rem;
+      color: #a3a3a3;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+    }
+
+    /* ── Content ── */
+    .content {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 120px 24px 80px;
+    }
+
+    .page-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #3b82f6;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .lead {
+      font-size: 1.15rem;
+      color: #737373;
+      margin-bottom: 64px;
+      max-width: 640px;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-top: 72px;
+      margin-bottom: 20px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    h2:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #e5e5e5;
+      margin-top: 40px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #a3a3a3;
+    }
+
+    ul, ol {
+      margin-bottom: 16px;
+      padding-left: 24px;
+      color: #a3a3a3;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    li strong {
+      color: #e5e5e5;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875em;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #d4d4d4;
+    }
+
+    pre {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #a3a3a3;
+    }
+
+    .highlight {
+      color: #60a5fa;
+    }
+
+    .comment {
+      color: #525252;
+    }
+
+    /* ── Diagrams ── */
+    .diagram-row {
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      align-items: flex-start;
+      margin: 32px 0 40px;
+      flex-wrap: wrap;
+    }
+
+    .diagram-item {
+      text-align: center;
+    }
+
+    .diagram-item img {
+      max-height: 380px;
+      border-radius: 12px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .diagram-item figcaption {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #525252;
+    }
+
+    /* ── Callout ── */
+    .callout {
+      background: rgba(59, 130, 246, 0.05);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin: 24px 0;
+    }
+
+    .callout p {
+      color: #a3a3a3;
+      margin-bottom: 0;
+    }
+
+    .callout strong {
+      color: #60a5fa;
+    }
+
+    /* ── Data Flow Table ── */
+    .flow-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+    }
+
+    .flow-table th {
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #525252;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .flow-table td {
+      padding: 14px 16px;
+      font-size: 0.9rem;
+      color: #a3a3a3;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      vertical-align: top;
+    }
+
+    .flow-table td:first-child {
+      color: #e5e5e5;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 48px 24px;
+    }
+
+    .footer-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-left {
+      font-size: 0.85rem;
+      color: #525252;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 0.85rem;
+      color: #525252;
+    }
+
+    .footer-links a:hover {
+      color: #a3a3a3;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .content {
+        padding: 100px 20px 60px;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+      }
+
+      h2 {
+        font-size: 1.3rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .diagram-row {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="./" class="nav-logo">Contracts Auditor</a>
+      <ul class="nav-links">
+        <li><a href="./">Home</a></li>
+        <li><a href="https://github.com/saxxi/contracts_auditor">GitHub</a></li>
+        <li><a href="https://github.com/saxxi/contracts_auditor#getting-started">Docs</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="content">
+    <p class="page-label">Architecture</p>
+    <h1>How the AI pipeline works</h1>
+    <p class="lead">A two-graph LangGraph system that fetches account data, runs parallel LLM analysis, and produces consulting-grade reports with sales scripts.</p>
+
+    <!-- ── Overview ── -->
+    <h2>Overview</h2>
+    <p>The backend is a Python agent built on <strong style="color:#e5e5e5">LangGraph</strong> and served via <strong style="color:#e5e5e5">CopilotKit</strong>. It exposes tools that the chat UI can invoke: selecting accounts, finding opportunities, generating reports, and editing them conversationally.</p>
+    <p>All heavy lifting happens in two LangGraph <code>StateGraph</code> pipelines. The chat agent orchestrates them but never sends large data payloads through the chat channel. Data stays server-side; only summaries reach the user.</p>
+
+    <div class="callout">
+      <p><strong>Key principle:</strong> the agent fetches data from the Next.js API, processes it through LLM pipelines, and writes results back to the database. The frontend reads from the DB via React Query. Chat is for coordination, not data transport.</p>
+    </div>
+
+    <!-- ── Graphs ── -->
+    <h2>The two LangGraph pipelines</h2>
+
+    <div class="diagram-row">
+      <figure class="diagram-item">
+        <img src="images/report_graph.png" alt="Report Generation Graph">
+        <figcaption>Report Generation Graph</figcaption>
+      </figure>
+      <figure class="diagram-item">
+        <img src="images/opportunities_graph.png" alt="Opportunities Graph">
+        <figcaption>Opportunities Graph</figcaption>
+      </figure>
+    </div>
+
+    <h3>Report Generation Graph</h3>
+    <p>Handles the core workload: turning account data into full reports with sales scripts. The graph uses LangGraph's <code>Send()</code> primitive for fan-out parallelism.</p>
+
+    <table class="flow-table">
+      <thead>
+        <tr><th>Node</th><th>What it does</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>fan_out</td>
+          <td>Reads <code>account_ids</code> from state and emits one <code>Send("process_account", ...)</code> per ID. LangGraph runs all of them concurrently.</td>
+        </tr>
+        <tr>
+          <td>process_account</td>
+          <td>Runs once per account in parallel. Fetches the account summary and historical deals, calls the LLM twice (report + sales script), then saves the result to the database via the Next.js API.</td>
+        </tr>
+        <tr>
+          <td>collect_results</td>
+          <td>No-op. Results from each <code>process_account</code> fork are already merged into the parent state via an <code>operator.add</code> reducer on the <code>results</code> and <code>errors</code> fields.</td>
+        </tr>
+        <tr>
+          <td>finalize</td>
+          <td>No-op. The graph returns the final aggregated state to the caller.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Opportunities Graph</h3>
+    <p>A simpler, single-node pipeline. When the user clicks "Find Opportunities," this graph receives a batch of account IDs, fetches all their summaries in one API call, and sends the full dataset to the LLM for triage.</p>
+
+    <table class="flow-table">
+      <thead>
+        <tr><th>Node</th><th>What it does</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>fetch_and_analyze</td>
+          <td>Fetches summaries for all candidate accounts, builds a compact JSON payload, sends it to the LLM with classification instructions (upsell / renegotiation / churn risk), and parses the recommended account IDs from the response.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── Data Flow ── -->
+    <h2>Data flow in detail</h2>
+
+    <h3>1. Account data ingestion</h3>
+    <p>Account data lives in PostgreSQL, managed by Drizzle ORM in the Next.js app. The schema uses a flexible <code>account_usage_metrics</code> table (key-value: metric name, current value, limit value, unit) instead of rigid per-metric columns. This means any metric the user tracks (seats, API calls, storage, automation runs) is captured without schema changes.</p>
+    <p>The Python agent fetches data through the Next.js REST API (<code>/api/account_summaries</code>), not directly from the database. Responses are cached in a file-based JSON cache with configurable TTL (1 day in dev, 10 minutes in prod).</p>
+
+    <h3>2. Two-pass LLM analysis</h3>
+    <p>Each account goes through two sequential LLM calls within the <code>process_account</code> node:</p>
+    <ol>
+      <li><strong>Pass 1: Analytical report.</strong> The LLM receives the account summary and 5-8 relevant historical deals (filtered by tier match and deal outcome). It produces a structured markdown report with situation analysis, key metrics, risk assessment, and next steps. The last line of output is a JSON metadata object with <code>proposition_type</code>, <code>success_percent</code>, <code>intervene</code>, <code>priority_score</code>, and <code>score_rationale</code>.</li>
+      <li><strong>Pass 2: Sales script.</strong> Using the report from Pass 1 as context, a second LLM call generates a tailored sales script with talk tracks, objection handlers, and a closing framework. The script is appended to the report body before saving.</li>
+    </ol>
+
+    <div class="callout">
+      <p><strong>Why two passes?</strong> The analytical report and sales script serve different audiences and require different tones. Separating them lets each prompt focus on one task, producing better output than a single monolithic prompt. The second pass benefits from having the structured analysis as context.</p>
+    </div>
+
+    <h3>3. Historical deal matching</h3>
+    <p>Before calling the LLM, the pipeline filters the historical deals library to find the most relevant precedents. Deals are scored by:</p>
+    <ul>
+      <li><strong>Tier match</strong> (+3): same pricing tier as the account</li>
+      <li><strong>Successful outcome</strong> (+2): deal was won/closed-won</li>
+      <li><strong>Deal size proximity</strong> (+1): deal size within 0.5x-3x of the account's annual contract value</li>
+    </ul>
+    <p>The top 8 deals are passed to the LLM as evidence for its recommendations.</p>
+
+    <h3>4. Report persistence</h3>
+    <p>Reports are saved as raw markdown via <code>POST /api/accounts/:id/account_reports</code>. The database supports multiple reports per account (regeneration creates a new row, never overwrites). The frontend renders markdown using custom React components per section, with <code>react-markdown</code> as fallback.</p>
+    <p>Each report section is editable individually: users can edit by hand in the modal, or ask the AI via chat. The agent state tracks <code>report_manually_edited</code> and <code>report_latest_content</code> so it always fetches the latest version before applying changes.</p>
+
+    <!-- ── Parallelism ── -->
+    <h2>Parallel processing</h2>
+
+    <h3>Fan-out with Send()</h3>
+    <p>The report generation graph processes accounts in parallel using LangGraph's <code>Send()</code> API. The <code>fan_out</code> node returns a list of <code>Send</code> objects, each targeting the <code>process_account</code> node with a single account ID. LangGraph schedules all forks concurrently.</p>
+
+<pre><code><span class="highlight">def</span> fan_out(state: ReportGraphState) -> list[Send]:
+    <span class="comment">"""Emit one Send per account ID for parallel processing."""</span>
+    <span class="highlight">return</span> [
+        Send(<span class="highlight">"process_account"</span>, {<span class="highlight">"account_id"</span>: aid})
+        <span class="highlight">for</span> aid <span class="highlight">in</span> state[<span class="highlight">"account_ids"</span>]
+    ]</code></pre>
+
+    <p>Results from each fork are merged back into the parent state using <code>Annotated[list[dict], operator.add]</code> reducers. This means every <code>process_account</code> return value is concatenated into a single <code>results</code> list without any explicit synchronization code.</p>
+
+    <h3>Scaling characteristics</h3>
+    <ul>
+      <li><strong>5 accounts:</strong> completes in roughly 1 LLM round-trip time (all 5 forks run in parallel)</li>
+      <li><strong>50 accounts:</strong> limited by LLM API concurrency. Each fork makes 2 sequential LLM calls + 2 HTTP calls (fetch + save)</li>
+      <li><strong>200 accounts:</strong> the split-button UI lets users choose batch size. Larger batches still fan out fully but may hit rate limits</li>
+    </ul>
+
+    <div class="callout">
+      <p><strong>Why not batch the LLM calls?</strong> Each account needs its own prompt with account-specific data and filtered historical deals. There is no shared context across accounts, so per-account parallelism is the natural decomposition. The fan-out pattern makes adding new per-account steps (e.g. enrichment, validation) trivial: just add nodes to the subgraph.</p>
+    </div>
+
+    <h3>Opportunities analysis: a different strategy</h3>
+    <p>The opportunities graph does <em>not</em> fan out. Instead, it sends all account summaries to the LLM in a single call. This is deliberate: opportunity identification requires cross-account comparison (which accounts stand out relative to the portfolio?), so the LLM needs to see the full picture at once. A single call with a compact JSON payload is more effective than N separate calls that each lack portfolio context.</p>
+
+    <!-- ── Landing page demo ── -->
+    <h2>Landing page demo pipeline</h2>
+    <p>The homepage "try it now" experience uses a separate tool (<code>analyze_raw_data</code>) that bypasses the database entirely. Users paste account data as JSON or free text; the tool parses what it can and passes the rest directly to the LLM prompt. The prompt is schema-agnostic, so it handles any format without lossy conversion steps.</p>
+
+    <table class="flow-table">
+      <thead>
+        <tr><th>Input format</th><th>How it's processed</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>JSON</td>
+          <td>Parsed and transformed to an <code>AccountSummary</code> shape. Handles both the new flexible <code>usage_metrics</code> array and the legacy paired-fields format.</td>
+        </tr>
+        <tr>
+          <td>Free text</td>
+          <td>Passed directly to the LLM prompt as <code>raw_data</code>. No intermediary parsing. The prompt instructs the LLM to scan whatever data is present.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── Agent tools ── -->
+    <h2>Agent tools</h2>
+    <p>The CopilotKit agent exposes seven tools, each returning a LangGraph <code>Command</code> that updates the shared state:</p>
+
+    <table class="flow-table">
+      <thead>
+        <tr><th>Tool</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>select_accounts</code></td>
+          <td>Mark account IDs as selected (pending report generation)</td>
+        </tr>
+        <tr>
+          <td><code>find_opportunities</code></td>
+          <td>Run the opportunities graph; pre-select the best candidates</td>
+        </tr>
+        <tr>
+          <td><code>generate_reports</code></td>
+          <td>Run the report generation graph for given account IDs</td>
+        </tr>
+        <tr>
+          <td><code>get_report_content</code></td>
+          <td>Fetch latest report from DB (respects manual edits)</td>
+        </tr>
+        <tr>
+          <td><code>update_report</code></td>
+          <td>Apply conversational edits to an existing report via LLM</td>
+        </tr>
+        <tr>
+          <td><code>get_account_reports</code></td>
+          <td>Read current selection state</td>
+        </tr>
+        <tr>
+          <td><code>analyze_raw_data</code></td>
+          <td>Generate report from pasted data (landing page demo)</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-left">&copy; 2026 Contracts Auditor. All rights reserved.</div>
+      <ul class="footer-links">
+        <li><a href="./">Home</a></li>
+        <li><a href="https://github.com/saxxi/contracts_auditor">GitHub</a></li>
+        <li><a href="https://github.com/saxxi/contracts_auditor/blob/main/LICENSE">AGPL-3.0 License</a></li>
+      </ul>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -81,7 +81,7 @@ async def generate_reports(account_ids: list[str], runtime: ToolRuntime) -> Comm
     Generate LLM-powered reports for the given account IDs in parallel.
     This fetches account data, analyzes with LLM, and saves reports to the database.
     Use this when the user asks to generate reports for selected accounts.
-    After generation, summarize results conversationally — do NOT open any modal.
+    After generation, summarize results conversationally, do NOT open any modal.
     """
     report_graph = build_report_graph()
     final_state = await report_graph.ainvoke({
@@ -104,7 +104,7 @@ async def generate_reports(account_ids: list[str], runtime: ToolRuntime) -> Comm
         success = report.get("success_percent", "?")
         intervene = report.get("intervene", False)
         intervene_str = ", intervention needed" if intervene else ""
-        summary_lines.append(f"- **{aid}** — {prop_type}, {success}% success{intervene_str}")
+        summary_lines.append(f"- **{aid}**, {prop_type}, {success}% success{intervene_str}")
         existing_map[aid] = AccountReport(id=aid, status="generated", report=None)
 
     for err in errors:
@@ -347,7 +347,7 @@ async def analyze_raw_data(account_data: str, runtime: ToolRuntime) -> Command:
     Used for the landing page demo where users paste arbitrary data.
     Accepts EITHER a JSON string with account/contract/usage fields,
     OR free-form text (e.g. bullet-point client dataset).
-    Pass the user's data as-is — do not restructure or summarize it.
+    Pass the user's data as-is, do not restructure or summarize it.
     """
     # Try JSON first; fall back to raw text
     try:
@@ -355,7 +355,7 @@ async def analyze_raw_data(account_data: str, runtime: ToolRuntime) -> Command:
         summary = _raw_json_to_summary(data)
         account_name = data.get("account", "Demo Account")
     except (json.JSONDecodeError, ValueError):
-        # Free text — pass directly to LLM prompt (it handles any format)
+        # Free text, pass directly to LLM prompt (it handles any format)
         summary = {
             "id": "DEMO",
             "name": "Demo Account",

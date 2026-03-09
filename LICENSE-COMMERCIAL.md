@@ -35,11 +35,11 @@ A perpetual license for organizations that need broader usage rights.
 
 Both commercial license tiers include:
 
-- **Perpetual usage rights** -- your license never expires
+- **Perpetual usage rights**, your license never expires
 - **All updates** released within the major version line at time of purchase
-- **Full source code access** -- same codebase as the open source version
-- **Freedom from AGPL-3.0 copyleft** -- no obligation to open-source your own application
-- **No recurring fees** -- pay once, use forever
+- **Full source code access**, same codebase as the open source version
+- **Freedom from AGPL-3.0 copyleft**, no obligation to open-source your own application
+- **No recurring fees**, pay once, use forever
 
 ---
 

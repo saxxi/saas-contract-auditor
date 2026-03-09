@@ -28,19 +28,19 @@ Answer these questions using available data:
 ## Step 3: Classify
 
 Classify into exactly one proposition type:
-- "requires negotiation" -- over any limit OR overdue payment with high utilization
-- "upsell proposition" -- near limits (typically >85% avg utilization across available metrics), growth signal, payment current
-- "poor usage" -- low utilization (typically <30% avg across available metrics), churn risk. But first check: if few users are active but transaction/integration volume is high, this may be narrow-but-deep usage, not disengagement
-- "at capacity" -- high utilization (typically >85%) but not over limits, payment current
-- "healthy" -- balanced usage (30-85%), no immediate action needed
+- "requires negotiation", over any limit OR overdue payment with high utilization
+- "upsell proposition", near limits (typically >85% avg utilization across available metrics), growth signal, payment current
+- "poor usage", low utilization (typically <30% avg across available metrics), churn risk. But first check: if few users are active but transaction/integration volume is high, this may be narrow-but-deep usage, not disengagement
+- "at capacity", high utilization (typically >85%) but not over limits, payment current
+- "healthy", balanced usage (30-85%), no immediate action needed
 
 Also assign a strategic bucket:
-- "Adoption Recovery" -- low usage, customer needs help extracting value
-- "Upsell Opportunity" -- near or over limits, growth trajectory
-- "Underpriced Account" -- persistent overages, paying less than value consumed
-- "Overprovisioned Contract" -- paying for capacity they don't use, downsize risk
-- "Churn Risk" -- low engagement + financial or timeline warning signs
-- "Healthy Growth" -- balanced, no immediate action
+- "Adoption Recovery", low usage, customer needs help extracting value
+- "Upsell Opportunity", near or over limits, growth trajectory
+- "Underpriced Account", persistent overages, paying less than value consumed
+- "Overprovisioned Contract", paying for capacity they don't use, downsize risk
+- "Churn Risk", low engagement + financial or timeline warning signs
+- "Healthy Growth", balanced, no immediate action
 
 ## Output Format
 

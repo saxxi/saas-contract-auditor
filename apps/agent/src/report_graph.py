@@ -252,12 +252,12 @@ async def process_account(state: ProcessAccountState) -> dict:
 
 
 def collect_results(state: ReportGraphState) -> dict:
-    """No-op — results already merged via reducer."""
+    """No-op: results already merged via reducer."""
     return {}
 
 
 def finalize(state: ReportGraphState) -> dict:
-    """No-op — graph returns final state."""
+    """No-op: graph returns final state."""
     return {}
 
 

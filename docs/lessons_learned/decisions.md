@@ -1,14 +1,14 @@
-- TipTap (`@tiptap/react` + `@tiptap/starter-kit`) chosen for rich text editing — lightweight, great React/Tailwind integration, ProseMirror-based
+- TipTap (`@tiptap/react` + `@tiptap/starter-kit`) chosen for rich text editing: lightweight, great React/Tailwind integration, ProseMirror-based
 - Frontend-first approach: hardcode account data in FE, backend integration comes later
 - Report modal scoped to canvas area (`absolute inset-0` within `relative` parent) so the chat panel remains visible
 - Prefer full RESTful approach: each action maps to a standard HTTP verb on a resource. Use separate resource controllers instead of custom actions
 - Selection merged with reports: an account is "selected" if it has an entry in `account_reports[]`. No separate `selectedIds` set
 - REST API is for data operations (reports), not for UI interaction state (selection, focus). Selection/focus lives in agent state
-- Using TanStack React Query for REST data fetching — handles caching, loading states, cache invalidation
+- Using TanStack React Query for REST data fetching. Handles caching, loading states, cache invalidation
 - Agent state schema: `account_reports: list[AccountReport]` + `focused_account_id: str | None`
 - `select_accounts` is a backend agent tool in `contracts.py`, not a frontend tool
 - Next.js 16 route handlers use `params: Promise<{...}>` pattern (must await params)
-- All backend responses and frontend types use snake_case fields — no camelCase conversion layer
+- All backend responses and frontend types use snake_case fields; no camelCase conversion layer
 - `Account` type is minimal (id, name). `AccountSummary` holds detailed usage/budget data (fetched on demand)
 - Architecture: Next.js = data layer (DB, REST API), Python = agent logic (LLM, tools, state). Python agent calls Next.js API routes when it needs data
 - PostgreSQL via Drizzle ORM. Schema in `apps/app/src/lib/db/schema.ts`. Seed: `pnpm --filter @repo/app db:seed`. Push: `pnpm --filter @repo/app db:push`
@@ -16,42 +16,42 @@
 - All DB tables follow ActiveRecord conventions: `id` PK, `created_at`, `updated_at`, plural table names
 - Prefer specialized timestamp columns for business-critical dates (e.g. `generated_at` for reports) alongside standard `created_at`/`updated_at`
 - Reports table supports multiple reports per account. `reportsById` maps to the latest report per account. Regeneration always creates a new row
-- `agent.setState()` replaces the entire state — always spread `...agent.state` to preserve existing keys
-- Report generation uses LangGraph StateGraph with `Send()` fan-out for parallel processing. Each account gets its own fork: fetch→analyze(LLM)→save
+- `agent.setState()` replaces the entire state; always spread `...agent.state` to preserve existing keys
+- Report generation uses LangGraph StateGraph with `Send()` fan-out for parallel processing. Each account gets its own fork: fetch > analyze (LLM) > save
 - Report generation routed through agent chat (not direct REST calls). Frontend clears messages, sends agent message with account IDs, agent calls `generate_reports` tool
 - After batch generation: no modal opens, chat shows conversational summary. User opens individual reports from table
-- Chat context persists across modal open/close — batch context not lost when viewing individual reports
+- Chat context persists across modal open/close; batch context not lost when viewing individual reports
 - Chat is talkative, reports are visual in modal. Agent never dumps large text blocks into chat
 - Batch edits require modal: agent opens one report first, applies change, asks "apply to others?"
 - Agent state `report_manually_edited` + `report_latest_content` track TipTap edits so agent fetches latest before updating
 - File-based JSON cache in `apps/agent/.cache/` (gitignored). TTL: 1 day dev, 10 min prod. Caches account summaries + historical deals
 - `agent.setMessages([])` clears chat messages (CopilotKit v2 API)
-- `agent.isRunning` is global — don't use it for specific button states (e.g. "Find Opportunities"). Track local state per action instead
-- Agent writes to DB directly (bypassing React Query mutations) — invalidate queries via `useEffect` on `agent.isRunning` transition (true→false)
+- `agent.isRunning` is global; don't use it for specific button states (e.g. "Find Opportunities"). Track local state per action instead
+- Agent writes to DB directly (bypassing React Query mutations). Invalidate queries via `useEffect` on `agent.isRunning` transition (true > false)
 - Guard all `agent.runAgent()` calls with `if (agent.isRunning) return` to prevent "Thread already running" errors
 - Tailwind v4 plugins use `@plugin "@tailwindcss/typography"` syntax in CSS (not `@import`)
 - LLM prompt for markdown tables must include explicit pipe-table example format or tables render as `<p>` text
 - "poor usage" classification should only apply to genuinely low utilization (<30%), not overdue-payment-with-high-utilization accounts
-- Replaced TipTap with `@uiw/react-md-editor` -- TipTap StarterKit strips unsupported HTML (tables, complex lists). Storing raw markdown in DB, rendered by md-editor
-- Removed Python `markdown` library and all markdown-to-HTML conversion -- LLM outputs markdown, stored as-is, rendered client-side
+- Replaced TipTap with `@uiw/react-md-editor`. TipTap StarterKit strips unsupported HTML (tables, complex lists). Storing raw markdown in DB, rendered by md-editor
+- Removed Python `markdown` library and all markdown-to-HTML conversion. LLM outputs markdown, stored as-is, rendered client-side
 - `@uiw/react-md-editor` must use `dynamic(() => import(...), { ssr: false })` in Next.js (uses browser APIs)
 - Track `generatingIds: Set<string>` instead of boolean `isGenerating` for per-account button state
-- Recharts v3 removed `clockWise` prop from `RadialBar` — just omit it
+- Recharts v3 removed `clockWise` prop from `RadialBar`; just omit it
 - Report preview uses custom React components per section (parsed from markdown), with `react-markdown` fallback for unrecognized sections. Keeps markdown as DB source of truth
 - Google Fonts `@import url(...)` must come BEFORE `@import "tailwindcss"` in globals.css or CSS spec warns about ordering
-- Recharts Tooltip `formatter` callback has `value: number | undefined` — do not annotate the param as `number`, let TS infer or use untyped
+- Recharts Tooltip `formatter` callback has `value: number | undefined`. Do not annotate the param as `number`; let TS infer or use untyped
 - Theme colors use string-keyed lookup maps (e.g. `Record<string, string>`) instead of Tailwind template literals because Tailwind can't tree-shake dynamically constructed class names
 - Report sections rendered in theme-defined order via `sectionOrder` array in theme config, using a slug-to-renderer map pattern
 - Inline section editing: `replaceSectionBody()` splices edited markdown back using `startLine`/`endLine` tracked during parsing. Only one section editable at a time (state in parent)
-- Report modal uses `mode: "preview" | "raw"` instead of boolean `isEditing` — preview mode has inline editing, raw mode opens full MDEditor
+- Report modal uses `mode: "preview" | "raw"` instead of boolean `isEditing`. Preview mode has inline editing, raw mode opens full MDEditor
 - Merged two tables (Selected Accounts + Accounts) into one unified table. Selected rows highlighted, sorted to top. Simpler layout, no row movement between tables
-- "Find Opportunities" uses a dedicated `opportunities_graph.py` LangGraph pipeline — data fetching happens server-side, no JSON blob in chat. Uses `OPPORTUNITIES_MODEL` env var for a potentially lighter model
+- "Find Opportunities" uses a dedicated `opportunities_graph.py` LangGraph pipeline. Data fetching happens server-side, no JSON blob in chat. Uses `OPPORTUNITIES_MODEL` env var for a potentially lighter model
 - "Find Opportunities" replaces selection (clears existing, selects only agent's picks). Frontend clears `account_reports` immediately on click, agent tool sets fresh selection
 - Never send large data payloads as visible chat messages. Use agent tools/graphs to fetch data server-side instead
-- Agent `select_accounts` is low-risk — system prompt explicitly says no confirmation needed. When user requests N accounts, select exactly N
-- Split button pattern for batch sizes (5/10/20/50/100/200) — default small batch, user can scale up. Keeps LLM analysis fast
+- Agent `select_accounts` is low-risk; system prompt explicitly says no confirmation needed. When user requests N accounts, select exactly N
+- Split button pattern for batch sizes (5/10/20/50/100/200). Default small batch, user can scale up. Keeps LLM analysis fast
 - "Generate reports for selected" always regenerates for all selected accounts, not just those missing reports
-- Sales script generation uses two-pass LLM: Pass 1 generates analytical report, Pass 2 generates sales script using report as context. Both inline in `process_account` node (no separate graph node needed since script depends on report output and parallelism is already at account level via Send()). Script markdown concatenated to report body before saving — same DB row, same modal
+- Sales script generation uses two-pass LLM: Pass 1 generates analytical report, Pass 2 generates sales script using report as context. Both inline in `process_account` node (no separate graph node needed since script depends on report output and parallelism is already at account level via Send()). Script markdown concatenated to report body before saving, same DB row and modal
 - Dual licensing: AGPL-3.0 (open source) + Commercial ($299 Personal/Startup, $999 Enterprise, both perpetual one-time). Landing page at `docs/index.html` for GitHub Pages
 - Report prompt is schema-agnostic: instructs LLM to scan whatever data is provided, compute utilization rates from any usage/limit pairs, and adapt analysis. Does not hardcode field names. This way the same prompt works if account data format changes
 - Anti-slop filtering on report prompts: rejected "Data Gaps" section (always becomes boilerplate), "Score Drivers" as full section (LLM fabricates reasons), fabricated measurable targets, and buzzword reframing instructions. Kept only changes that produce concrete, data-driven output
@@ -61,4 +61,5 @@
 - Replaced 3 rigid per-metric tables (`account_active_users`, `account_invoicing_usages`, `account_integrations_usages`) with 1 flexible `account_usage_metrics` table (key-value: metric_name, current_value, limit_value, unit). Prevents silently dropping non-standard metrics (API calls, storage, automation runs). Added `context` column to `accounts` for qualitative CS notes
 - `_raw_json_to_summary` in `contracts.py` handles both new format (`usage_metrics` array) and legacy format (paired fields like `active_users`/`seat_limit`) for backward compatibility with landing page demo
 - `analyze_raw_data` accepts both JSON and free text. JSON goes through `_raw_json_to_summary`; free text passes directly to the LLM prompt as `raw_data`. This prevents lossy JSON conversion from dropping usage metrics (API calls, storage, automation runs, overages). The prompt is schema-agnostic and handles any format
-- Never force structured-data intermediaries between user input and LLM prompt when the prompt already handles free-form data — each conversion step is a data loss opportunity
+- Never force structured-data intermediaries between user input and LLM prompt when the prompt already handles free-form data. Each conversion step is a data loss opportunity
+- Avoid em dashes everywhere in the codebase. Use colons, semicolons, periods, or parentheses instead

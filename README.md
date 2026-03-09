@@ -1,21 +1,44 @@
 # Contracts Auditor
 
-This is a starter template for building AI agents using [LangGraph](https://www.langchain.com/langgraph) and [CopilotKit](https://copilotkit.ai). It provides a modern Next.js application with an integrated LangGraph agent to be built on top of.
+**[View the project website](https://saxxi.github.io/contracts_auditor/)**
 
-https://github.com/user-attachments/assets/47761912-d46a-4fb3-b9bd-cb41ddd02e34
+An AI-powered tool that helps SaaS companies identify revenue opportunities hidden in their client contracts. It compares contract limits against actual usage data to surface accounts that are ready for upsell, need renegotiation, or show signs of churn risk.
+
+Built for account executives, customer success teams, and revenue operations at any B2B SaaS company managing a portfolio of client contracts.
+
+### Homepage
+![Homepage](docs/images/app_homepage.png)
+
+### Demo Dashboard
+![Demo Dashboard](docs/images/main_screen.png)
+
+### Report Detail
+![Report Detail](docs/images/report_popup.png)
+
+## What It Does
+
+- **Paste or load account data** (usage metrics, contract terms, billing info) and get a consulting-grade report with strategic recommendations
+- **Analyze accounts in bulk** across your portfolio to find the best opportunities
+- **Generate reports** that include situation analysis, risk assessment, objection handlers, and next steps
+- **Chat with the AI** about any account or report to refine the analysis
+- **Edit reports interactively** before sharing with your team
+
+Reports classify each account into categories like "upsell proposition", "requires negotiation", "poor usage", "at capacity", or "healthy" with a success probability score and a flag for whether immediate intervention is needed.
+
+## Tech Stack
+
+- **Frontend**: Next.js 16 (Turbopack), React 19, Tailwind CSS 4, Recharts
+- **AI Agent**: LangGraph (Python) with CopilotKit integration
+- **Database**: PostgreSQL with Drizzle ORM
+- **Monorepo**: Turborepo with pnpm
 
 ## Prerequisites
 
 - Node.js 18+
 - Python 3.8+
-- Any of the following package managers:
-  - [pnpm](https://pnpm.io/installation) (recommended)
-  - npm
-  - [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable)
-  - [bun](https://bun.sh/)
-- OpenAI API Key (for the LangGraph agent)
-
-> **Note:** This repository ignores lock files (package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb) to avoid conflicts between different package managers. Each developer should generate their own lock file using their preferred package manager. After that, make sure to delete it from the .gitignore.
+- PostgreSQL
+- pnpm
+- OpenAI API key
 
 ## Getting Started
 
@@ -24,27 +47,21 @@ https://github.com/user-attachments/assets/47761912-d46a-4fb3-b9bd-cb41ddd02e34
 pnpm install
 ```
 
-2. Set up your environment variables:
+2. Set up environment variables:
 ```bash
 cp .env.example .env
 ```
 
-Then edit the `.env` file and add your OpenAI API key:
-
-```bash
-OPENAI_API_KEY=your-openai-api-key-here
+Edit `.env` and add your keys:
+```
+OPENAI_API_KEY=your-openai-api-key
 DATABASE_URL=postgresql://postgres@localhost:5432/contracts_auditor
 ```
 
-3. Set up the database (requires PostgreSQL running locally):
+3. Set up the database:
 ```bash
-# Create the database
 psql -U postgres -c "CREATE DATABASE contracts_auditor"
-
-# Push the schema (creates tables)
 pnpm --filter @repo/app db:push
-
-# Seed with 50 accounts + 6 historical deals
 pnpm --filter @repo/app db:seed
 ```
 
@@ -53,52 +70,37 @@ pnpm --filter @repo/app db:seed
 pnpm dev
 ```
 
-This will start both the UI and agent servers concurrently.
+This starts both the Next.js UI (frontend) and the LangGraph agent (backend) concurrently.
 
 ## Available Scripts
 
-- `pnpm dev` - Starts both UI and agent servers in development mode
-- `pnpm dev:app` - Starts only the Next.js UI server
-- `pnpm dev:agent` - Starts only the LangGraph agent server
-- `pnpm build` - Builds the Next.js application for production
-- `pnpm lint` - Runs ESLint for code linting
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start both UI and agent servers |
+| `pnpm dev:app` | Start only the Next.js UI |
+| `pnpm dev:agent` | Start only the LangGraph agent |
+| `pnpm build` | Build for production |
+| `pnpm --filter @repo/app db:push` | Push schema to database |
+| `pnpm --filter @repo/app db:seed` | Seed accounts and historical deals |
 
-### Database Scripts (run from `apps/app`)
+## Project Structure
 
-- `pnpm --filter @repo/app db:push` - Push schema to database (dev)
-- `pnpm --filter @repo/app db:generate` - Generate migrations
-- `pnpm --filter @repo/app db:seed` - Seed accounts and historical deals
-
-## Documentation
-
-The main UI component is in `src/app/page.tsx`. You can:
-- Modify the theme colors and styling
-- Add new frontend actions
-- Customize the CopilotKit sidebar appearance
-
-## 📚 Documentation
-
-- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/) - Learn more about LangGraph and its features
-- [CopilotKit Documentation](https://docs.copilotkit.ai) - Explore CopilotKit's capabilities
-
-## Contributing
-
-Feel free to submit issues and enhancement requests! This starter is designed to be easily extensible.
+```
+apps/
+  app/          # Next.js frontend
+  agent/        # LangGraph Python agent
+docs/           # Plans, lessons learned, reference material
+```
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Dual-licensed under AGPL-3.0 and a commercial license. See [LICENSE](LICENSE) and [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md) for details.
 
 ## Troubleshooting
 
-### Agent Connection Issues
-If you see "I'm having trouble connecting to my tools", make sure:
-1. The LangGraph agent is running on port 8000
-2. Your OpenAI API key is set correctly
-3. Both servers started successfully
+**Agent connection issues**: Make sure the LangGraph agent is running on port 8000 and your OpenAI API key is set correctly.
 
-### Database Issues
-If you need to reset the database:
+**Database reset**:
 ```bash
 psql -U postgres -c "DROP DATABASE contracts_auditor"
 psql -U postgres -c "CREATE DATABASE contracts_auditor"
@@ -106,8 +108,7 @@ pnpm --filter @repo/app db:push
 pnpm --filter @repo/app db:seed
 ```
 
-### Python Dependencies
-If you encounter Python import errors, install the agent dependencies:
+**Python dependencies**:
 ```bash
 cd apps/agent && pip install -e .
 ```

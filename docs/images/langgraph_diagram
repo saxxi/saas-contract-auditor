@@ -1,0 +1,36 @@
+digraph "LangGraph Architecture" {
+	bgcolor=transparent fontname="Inter, Helvetica, Arial, sans-serif" nodesep=0.6 pad=0.5 rankdir=TB ranksep=0.8
+	node [fontname="Inter, Helvetica, Arial, sans-serif" fontsize=13 penwidth=1.5 style=filled]
+	edge [color="#525252" fontname="Inter, Helvetica, Arial, sans-serif" fontsize=11 penwidth=1.5]
+	subgraph cluster_report {
+		color="#3b82f6" fontcolor="#60a5fa" fontsize=14 label="Report Generation Graph" labeljust=l penwidth=1 style="rounded,dashed"
+		r_start [label=START fillcolor="#1e3a5f" fixedsize=true fontcolor="#60a5fa" shape=circle width=0.8]
+		r_fan_out [label=fan_out fillcolor="#1a1a2e" fontcolor="#a3a3a3" height=0.8 shape=diamond width=1.4]
+		r_process_1 [label="process_account
+(account 1)" fillcolor="#1a1a2e" fontcolor="#e5e5e5" shape=box style="filled,rounded"]
+		r_process_2 [label="process_account
+(account 2)" fillcolor="#1a1a2e" fontcolor="#e5e5e5" shape=box style="filled,rounded"]
+		r_process_n [label="process_account
+(account N)" fillcolor="#1a1a2e" fontcolor="#e5e5e5" shape=box style="filled,rounded"]
+		r_collect [label=collect_results fillcolor="#1a1a2e" fontcolor="#e5e5e5" shape=box style="filled,rounded"]
+		r_finalize [label=finalize fillcolor="#1a1a2e" fontcolor="#e5e5e5" shape=box style="filled,rounded"]
+		r_end [label=END fillcolor="#1e3a5f" fixedsize=true fontcolor="#60a5fa" shape=circle width=0.8]
+		r_start -> r_fan_out [label=conditional]
+		r_fan_out -> r_process_1 [color="#3b82f6" style=dashed]
+		r_fan_out -> r_process_2 [color="#3b82f6" style=dashed]
+		r_fan_out -> r_process_n [color="#3b82f6" style=dashed]
+		r_process_1 -> r_collect
+		r_process_2 -> r_collect
+		r_process_n -> r_collect
+		r_collect -> r_finalize
+		r_finalize -> r_end
+	}
+	subgraph cluster_opportunities {
+		color="#3b82f6" fontcolor="#60a5fa" fontsize=14 label="Opportunities Graph" labeljust=l penwidth=1 style="rounded,dashed"
+		o_start [label=START fillcolor="#1e3a5f" fixedsize=true fontcolor="#60a5fa" shape=circle width=0.8]
+		o_fetch [label=fetch_and_analyze fillcolor="#1a1a2e" fontcolor="#e5e5e5" shape=box style="filled,rounded"]
+		o_end [label=END fillcolor="#1e3a5f" fixedsize=true fontcolor="#60a5fa" shape=circle width=0.8]
+		o_start -> o_fetch
+		o_fetch -> o_end
+	}
+}
