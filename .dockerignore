@@ -19,6 +19,8 @@ pip-delete-this-directory.txt
 coverage
 *.lcov
 .nyc_output
+.coverage
+playwright-report
 
 # Build outputs
 .next/
@@ -64,6 +66,9 @@ Thumbs.db
 
 # Turbo
 .turbo
+
+# LangGraph
+.langgraph_api
 
 # Misc
 .cache

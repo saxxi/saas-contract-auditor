@@ -75,3 +75,6 @@
 - Error boundaries: React class component wrapping `{children}` in layout (catch-all) and around `CopilotChat`/`ContractsCanvas` in demo page (third-party + complex component isolation). Fallback shows "Something went wrong" + retry button
 - `<head>` metadata added directly in `layout.tsx` JSX (title, description, viewport, favicon). Per-page titles deferred since the app is SPA-style
 - API docs: hand-maintained `openapi.yaml` preferred over auto-generation tooling for ~10 routes. Co-located JSDoc comments in route handlers reference the spec
+- Docker Compose uses 5 containers: app, app-postgres, langgraph-api, langgraph-postgres, langgraph-redis. LangGraph production image (`langchain/langgraph-api`) requires its own Postgres (pgvector for checkpointing) and Redis (pub-sub for streaming); these cannot be removed
+- Agent Dockerfile uses `langchain/langgraph-api:3.12` base image (Wolfi distro). It handles serving internally on port 8000. Set `LANGSERVE_GRAPHS` env to wire up the graph
+- Read tool cannot read files with `.app` extension (treats as binary). Use `cat` via Bash as workaround for `docker/Dockerfile.app`

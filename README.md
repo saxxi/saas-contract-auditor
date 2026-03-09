@@ -35,12 +35,45 @@ Reports classify each account into categories like "upsell proposition", "requir
 ## Prerequisites
 
 - Node.js 18+
-- Python 3.8+
+- Python 3.12+
 - PostgreSQL
 - pnpm
 - OpenAI API key
 
-## Getting Started
+## Quick Start with Docker
+
+The fastest way to run everything:
+
+```bash
+cp .env.example .env
+# Edit .env and set OPENAI_API_KEY
+
+docker compose up -d --build
+
+# Apply DB schema and seed data (first run only)
+docker compose exec app pnpm db:push
+docker compose exec app pnpm db:seed
+```
+
+The app is now running at [http://localhost:3000](http://localhost:3000).
+
+To stop:
+```bash
+docker compose down       # Keep data
+docker compose down -v    # Remove data volumes
+```
+
+### Docker Architecture
+
+| Service | Image | Port |
+|---------|-------|------|
+| `app` | Next.js standalone | 3000 |
+| `app-postgres` | postgres:17-alpine | 5432 |
+| `langgraph-api` | langchain/langgraph-api:3.12 (Wolfi) | 8123 |
+| `langgraph-postgres` | pgvector/pgvector:pg16 | 5433 |
+| `langgraph-redis` | redis:6 | internal |
+
+## Local Development
 
 1. Install dependencies:
 ```bash
@@ -105,6 +138,7 @@ cd apps/agent && uv run pytest
 apps/
   app/          # Next.js frontend
   agent/        # LangGraph Python agent
+docker/         # Dockerfiles for app and agent
 docs/           # Plans, lessons learned, reference material
 ```
 
@@ -116,12 +150,20 @@ Dual-licensed under AGPL-3.0 and a commercial license. See [LICENSE](LICENSE) an
 
 **Agent connection issues**: Make sure the LangGraph agent is running on port 8000 and your OpenAI API key is set correctly.
 
-**Database reset**:
+**Database reset** (local):
 ```bash
 psql -U postgres -c "DROP DATABASE contracts_auditor"
 psql -U postgres -c "CREATE DATABASE contracts_auditor"
 pnpm --filter @repo/app db:push
 pnpm --filter @repo/app db:seed
+```
+
+**Database reset** (Docker):
+```bash
+docker compose down -v
+docker compose up -d
+docker compose exec app pnpm db:push
+docker compose exec app pnpm db:seed
 ```
 
 **Python dependencies**:
