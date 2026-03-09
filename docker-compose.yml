@@ -42,7 +42,7 @@ services:
   langgraph-api:
     build:
       context: .
-      dockerfile: docker/Dockerfile.agent
+      dockerfile: apps/agent/Dockerfile
     environment:
       REDIS_URI: redis://langgraph-redis:6379
       POSTGRES_URI: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@langgraph-postgres:5432/langgraph
@@ -62,7 +62,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: docker/Dockerfile.app
+      dockerfile: apps/app/Dockerfile
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@app-postgres:5432/saas_contract_auditor
       LANGGRAPH_DEPLOYMENT_URL: http://langgraph-api:8000
@@ -84,7 +84,7 @@ services:
   migrate:
     build:
       context: .
-      dockerfile: docker/Dockerfile.app
+      dockerfile: apps/app/Dockerfile
       target: builder
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@app-postgres:5432/saas_contract_auditor
