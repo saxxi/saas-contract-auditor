@@ -63,3 +63,7 @@
 - `analyze_raw_data` accepts both JSON and free text. JSON goes through `_raw_json_to_summary`; free text passes directly to the LLM prompt as `raw_data`. This prevents lossy JSON conversion from dropping usage metrics (API calls, storage, automation runs, overages). The prompt is schema-agnostic and handles any format
 - Never force structured-data intermediaries between user input and LLM prompt when the prompt already handles free-form data. Each conversion step is a data loss opportunity
 - Avoid em dashes everywhere in the codebase. Use colons, semicolons, periods, or parentheses instead
+- Playwright e2e tests: use `pnpm start` in webServer (not standalone server). Standalone server doesn't serve static assets correctly for client-side React state updates. The `next start` warning with `output: standalone` is benign
+- Playwright selectors: CopilotKit renders its own textarea and links. Use scoped selectors (e.g. `textarea[spellcheck="false"]`, `page.locator('nav').getByRole(...)`) to avoid strict mode violations from multiple matching elements
+- Textarea assertions in Playwright: use `toHaveValue()` not `toContainText()` since textarea content is in the `value` property, not inner text
+- Testing stack: Vitest + @testing-library/react + jsdom for unit/component tests, Playwright for e2e. Scripts: `test` (vitest run), `test:watch` (vitest), `test:e2e` (playwright), `test:e2e:ui` (playwright --ui)
