@@ -20,9 +20,20 @@ This is NOT a legal document parser or blockchain smart contract tool. It works 
 ## Tech Stack
 
 - Frontend: Next.js 16 + React 19 + Tailwind 4 + CopilotKit + Recharts
-- Agent: LangGraph (Python) + LangChain
+- Agent: LangGraph (Python) + LangChain + Pydantic (LLM output validation)
 - Database: PostgreSQL + Drizzle ORM
 - Monorepo: Turborepo + pnpm
+
+## Production Resilience
+
+Use `/production-grade` skill for code quality reviews. Key patterns already in use:
+- `invoke_with_retry()` in `src/resilience.py` for LLM retries with exponential backoff
+- `asyncio.Semaphore` (`MAX_CONCURRENT_LLM`) for fan-out concurrency
+- Pydantic validation on all LLM structured output (`ReportMetadata`, `ReportEvaluation`, `OpportunitiesResult`)
+- LLM evaluator node: scores reports against a rubric (sections, metrics accuracy, classification justification, evidence grounding). On "fail", re-analyzes with feedback (max 1 retry)
+- Langfuse integration (optional): LLM observability with trace visualization, evaluation scores. Set `LANGFUSE_PUBLIC_KEY`/`LANGFUSE_SECRET_KEY` to enable
+- `GET /api/health` for Docker healthcheck
+- Eval suite: 15 cases, `--mock` for CI
 
 ## HOW TO OPERATE
 

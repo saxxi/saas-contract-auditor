@@ -48,6 +48,9 @@ services:
       POSTGRES_URI: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@langgraph-postgres:5432/langgraph
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_HOST: ${LANGFUSE_HOST:-https://cloud.langfuse.com}
     ports:
       - "8123:8000"
     depends_on:
@@ -71,6 +74,12 @@ services:
         condition: service_healthy
       langgraph-api:
         condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   migrate:
     build:

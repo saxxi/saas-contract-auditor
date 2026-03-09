@@ -1,16 +1,29 @@
+import asyncio
 from unittest.mock import AsyncMock, patch, MagicMock
 
 import httpx
 import respx
 
-from src.report_graph import process_account, analyze_account, API_BASE
+from src.report_graph import process_account, analyze_account, evaluate_report, API_BASE
+from src.types import ReportEvaluation
+
+
+def _make_pass_evaluation():
+    return ReportEvaluation(
+        sections_complete=True,
+        metrics_accurate=True,
+        classification_justified=True,
+        evidence_grounded=True,
+        overall_quality="pass",
+        issues=[],
+    )
 
 
 @respx.mock
 async def test_process_account_success(
     tmp_cache_dir, sample_account_summary, sample_llm_report_output
 ):
-    """Mock all APIs + LLM -> results has 1 entry, no errors."""
+    """Mock all APIs + LLM + evaluator -> results has 1 entry, no errors."""
     # Mock account summary API
     respx.get(f"{API_BASE}/api/account_summaries").mock(
         return_value=httpx.Response(200, json=[sample_account_summary])
@@ -37,11 +50,16 @@ async def test_process_account_success(
     mock_response.content = sample_llm_report_output
 
     with patch("src.report_graph.ChatOpenAI") as mock_cls:
-        mock_model = AsyncMock()
-        mock_model.ainvoke.return_value = mock_response
+        mock_model = MagicMock()
+        mock_model.ainvoke = AsyncMock(return_value=mock_response)
+        # Evaluator uses with_structured_output (sync method)
+        mock_structured = MagicMock()
+        mock_structured.ainvoke = AsyncMock(return_value=_make_pass_evaluation())
+        mock_model.with_structured_output.return_value = mock_structured
         mock_cls.return_value = mock_model
 
-        result = await process_account({"account_id": "AC-1"})
+        with patch("src.resilience.llm_semaphore", asyncio.Semaphore(10)):
+            result = await process_account({"account_id": "AC-1"})
 
     assert len(result["results"]) == 1
     assert result["errors"] == []
@@ -81,11 +99,16 @@ async def test_process_account_save_fails(
     mock_response.content = sample_llm_report_output
 
     with patch("src.report_graph.ChatOpenAI") as mock_cls:
-        mock_model = AsyncMock()
-        mock_model.ainvoke.return_value = mock_response
+        mock_model = MagicMock()
+        mock_model.ainvoke = AsyncMock(return_value=mock_response)
+        # Evaluator
+        mock_structured = MagicMock()
+        mock_structured.ainvoke = AsyncMock(return_value=_make_pass_evaluation())
+        mock_model.with_structured_output.return_value = mock_structured
         mock_cls.return_value = mock_model
 
-        result = await process_account({"account_id": "AC-1"})
+        with patch("src.resilience.llm_semaphore", asyncio.Semaphore(10)):
+            result = await process_account({"account_id": "AC-1"})
 
     assert result["results"] == []
     assert any("save" in e.lower() or "Failed" in e for e in result["errors"])
@@ -99,11 +122,12 @@ async def test_analyze_account_two_llm_passes(
     mock_response.content = sample_llm_report_output
 
     with patch("src.report_graph.ChatOpenAI") as mock_cls:
-        mock_model = AsyncMock()
-        mock_model.ainvoke.return_value = mock_response
+        mock_model = MagicMock()
+        mock_model.ainvoke = AsyncMock(return_value=mock_response)
         mock_cls.return_value = mock_model
 
-        await analyze_account(sample_account_summary, [])
+        with patch("src.resilience.llm_semaphore", asyncio.Semaphore(10)):
+            await analyze_account(sample_account_summary, [])
 
     assert mock_model.ainvoke.call_count == 2
 
@@ -117,11 +141,12 @@ async def test_analyze_account_raw_data_path(sample_llm_report_output):
     mock_response.content = sample_llm_report_output
 
     with patch("src.report_graph.ChatOpenAI") as mock_cls:
-        mock_model = AsyncMock()
-        mock_model.ainvoke.return_value = mock_response
+        mock_model = MagicMock()
+        mock_model.ainvoke = AsyncMock(return_value=mock_response)
         mock_cls.return_value = mock_model
 
-        result = await analyze_account(summary, deals)
+        with patch("src.resilience.llm_semaphore", asyncio.Semaphore(10)):
+            result = await analyze_account(summary, deals)
 
     # Verify the prompt used raw_data text
     call_args = mock_model.ainvoke.call_args_list[0]

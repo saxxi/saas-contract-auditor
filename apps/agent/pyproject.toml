@@ -17,6 +17,7 @@ dependencies = [
     "langgraph-api>=0.7.16",
     "langchain-mcp-adapters>=0.2.1",
     "httpx>=0.28.0",
+    "langfuse>=2.0.0",
 ]
 
 [dependency-groups]

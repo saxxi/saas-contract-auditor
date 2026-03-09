@@ -366,58 +366,244 @@
     <!-- ── Graphs ── -->
     <h2>The two LangGraph pipelines</h2>
 
-    <div class="diagram-row">
-      <figure class="diagram-item">
-        <img src="images/report_graph.png" alt="Report Generation Graph">
-        <figcaption>Report Generation Graph</figcaption>
-      </figure>
-      <figure class="diagram-item">
-        <img src="images/opportunities_graph.png" alt="Opportunities Graph">
-        <figcaption>Opportunities Graph</figcaption>
-      </figure>
+    <h3>Report Generation Graph</h3>
+    <p>Handles the core workload: turning account data into full reports with sales scripts. The graph uses LangGraph's <code>Send()</code> primitive for fan-out parallelism, with concurrency-limited LLM calls and multi-step validation.</p>
+
+    <!-- Report Generation Graph - inline SVG -->
+    <div style="margin: 32px 0 40px; overflow-x: auto;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 720" style="max-width: 940px; width: 100%; height: auto;">
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#525252"/></marker>
+          <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#3b82f6"/></marker>
+          <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#22c55e"/></marker>
+          <marker id="arrow-amber" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#f59e0b"/></marker>
+          <linearGradient id="semaphore-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f59e0b" stop-opacity="0.15"/><stop offset="100%" stop-color="#f59e0b" stop-opacity="0.05"/></linearGradient>
+        </defs>
+
+        <!-- Background -->
+        <rect width="940" height="720" rx="16" fill="#0f0f0f" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+        <!-- Title -->
+        <text x="470" y="36" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="14" font-weight="600">REPORT GENERATION GRAPH</text>
+
+        <!-- START node -->
+        <circle cx="470" cy="72" r="20" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="470" y="77" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="11" font-weight="600">START</text>
+
+        <!-- Arrow START -> fan_out -->
+        <line x1="470" y1="92" x2="470" y2="112" stroke="#525252" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- fan_out diamond -->
+        <polygon points="470,116 530,140 470,164 410,140" fill="#1a1a2e" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="470" y="144" text-anchor="middle" fill="#93bbfc" font-family="Inter, sans-serif" font-size="11" font-weight="500">fan_out</text>
+        <text x="470" y="180" text-anchor="middle" fill="#525252" font-family="Inter, sans-serif" font-size="10" font-style="italic">Send() per account ID</text>
+
+        <!-- Fan-out arrows (dashed blue) to 3 parallel lanes -->
+        <path d="M430,158 L160,200" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow-blue)"/>
+        <path d="M470,164 L470,200" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow-blue)"/>
+        <path d="M510,158 L780,200" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#arrow-blue)"/>
+
+        <!-- ═══ PARALLEL LANE: Account 1 (left) ═══ -->
+        <g>
+          <rect x="50" y="204" width="220" height="376" rx="10" fill="none" stroke="rgba(59,130,246,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+          <text x="160" y="222" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="10" font-weight="600">ACCOUNT 1</text>
+
+          <!-- Fetch data -->
+          <rect x="80" y="234" width="160" height="34" rx="6" fill="#1a1a2e" stroke="#525252" stroke-width="1"/>
+          <text x="160" y="256" text-anchor="middle" fill="#a3a3a3" font-family="Inter, sans-serif" font-size="10">Fetch data</text>
+          <text x="246" y="256" fill="#525252" font-family="Inter, sans-serif" font-size="9" font-style="italic">parallel, ungated</text>
+
+          <!-- Semaphore zone -->
+          <rect x="68" y="278" width="184" height="290" rx="8" fill="url(#semaphore-grad)" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+          <text x="160" y="294" text-anchor="middle" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="9" font-weight="500">semaphore (max 5)</text>
+
+          <!-- LLM Pass 1 -->
+          <rect x="85" y="304" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1"/>
+          <text x="160" y="325" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10">LLM: Report</text>
+
+          <!-- Validate -->
+          <rect x="85" y="346" width="150" height="34" rx="6" fill="#2e1a2e" stroke="#a855f7" stroke-width="1"/>
+          <text x="160" y="367" text-anchor="middle" fill="#d8b4fe" font-family="Inter, sans-serif" font-size="10">Validate + rubric</text>
+
+          <!-- Section fix (conditional) -->
+          <rect x="85" y="388" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="160" y="409" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10" opacity="0.7">LLM: Fix sections?</text>
+
+          <!-- LLM Pass 2 -->
+          <!-- Numeric check -->
+          <rect x="85" y="430" width="150" height="34" rx="6" fill="#2e2e1a" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="160" y="451" text-anchor="middle" fill="#fcd34d" font-family="Inter, sans-serif" font-size="10" opacity="0.7">Numeric audit</text>
+
+          <rect x="85" y="472" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1"/>
+          <text x="160" y="493" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10">LLM: Sales script</text>
+
+          <!-- Save -->
+          <rect x="85" y="520" width="150" height="34" rx="6" fill="#1a1a2e" stroke="#525252" stroke-width="1"/>
+          <text x="160" y="541" text-anchor="middle" fill="#a3a3a3" font-family="Inter, sans-serif" font-size="10">Save to DB</text>
+
+          <!-- Internal arrows -->
+          <line x1="160" y1="268" x2="160" y2="304" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="160" y1="338" x2="160" y2="346" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="160" y1="380" x2="160" y2="388" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="160" y1="422" x2="160" y2="430" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="160" y1="464" x2="160" y2="472" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="160" y1="506" x2="160" y2="520" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+        </g>
+
+        <!-- ═══ PARALLEL LANE: Account 2 (center) ═══ -->
+        <g>
+          <rect x="360" y="204" width="220" height="376" rx="10" fill="none" stroke="rgba(59,130,246,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+          <text x="470" y="222" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="10" font-weight="600">ACCOUNT 2</text>
+
+          <rect x="390" y="234" width="160" height="34" rx="6" fill="#1a1a2e" stroke="#525252" stroke-width="1"/>
+          <text x="470" y="256" text-anchor="middle" fill="#a3a3a3" font-family="Inter, sans-serif" font-size="10">Fetch data</text>
+
+          <rect x="378" y="278" width="184" height="290" rx="8" fill="url(#semaphore-grad)" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+          <text x="470" y="294" text-anchor="middle" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="9" font-weight="500">semaphore (max 5)</text>
+
+          <rect x="395" y="304" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1"/>
+          <text x="470" y="325" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10">LLM: Report</text>
+
+          <rect x="395" y="346" width="150" height="34" rx="6" fill="#2e1a2e" stroke="#a855f7" stroke-width="1"/>
+          <text x="470" y="367" text-anchor="middle" fill="#d8b4fe" font-family="Inter, sans-serif" font-size="10">Validate + rubric</text>
+
+          <rect x="395" y="388" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="470" y="409" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10" opacity="0.7">LLM: Fix sections?</text>
+
+          <rect x="395" y="430" width="150" height="34" rx="6" fill="#2e2e1a" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="470" y="451" text-anchor="middle" fill="#fcd34d" font-family="Inter, sans-serif" font-size="10" opacity="0.7">Numeric audit</text>
+
+          <rect x="395" y="472" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1"/>
+          <text x="470" y="493" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10">LLM: Sales script</text>
+
+          <rect x="395" y="520" width="150" height="34" rx="6" fill="#1a1a2e" stroke="#525252" stroke-width="1"/>
+          <text x="470" y="541" text-anchor="middle" fill="#a3a3a3" font-family="Inter, sans-serif" font-size="10">Save to DB</text>
+
+          <line x1="470" y1="268" x2="470" y2="304" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="470" y1="338" x2="470" y2="346" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="470" y1="380" x2="470" y2="388" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="470" y1="422" x2="470" y2="430" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="470" y1="464" x2="470" y2="472" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="470" y1="506" x2="470" y2="520" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+        </g>
+
+        <!-- ═══ PARALLEL LANE: Account N (right) ═══ -->
+        <g>
+          <rect x="670" y="204" width="220" height="376" rx="10" fill="none" stroke="rgba(59,130,246,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+          <text x="780" y="222" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="10" font-weight="600">ACCOUNT N</text>
+
+          <rect x="700" y="234" width="160" height="34" rx="6" fill="#1a1a2e" stroke="#525252" stroke-width="1"/>
+          <text x="780" y="256" text-anchor="middle" fill="#a3a3a3" font-family="Inter, sans-serif" font-size="10">Fetch data</text>
+
+          <rect x="688" y="278" width="184" height="290" rx="8" fill="url(#semaphore-grad)" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>
+          <text x="780" y="294" text-anchor="middle" fill="#f59e0b" font-family="JetBrains Mono, monospace" font-size="9" font-weight="500">semaphore (max 5)</text>
+
+          <rect x="705" y="304" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1"/>
+          <text x="780" y="325" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10">LLM: Report</text>
+
+          <rect x="705" y="346" width="150" height="34" rx="6" fill="#2e1a2e" stroke="#a855f7" stroke-width="1"/>
+          <text x="780" y="367" text-anchor="middle" fill="#d8b4fe" font-family="Inter, sans-serif" font-size="10">Validate + rubric</text>
+
+          <rect x="705" y="388" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="780" y="409" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10" opacity="0.7">LLM: Fix sections?</text>
+
+          <rect x="705" y="430" width="150" height="34" rx="6" fill="#2e2e1a" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="780" y="451" text-anchor="middle" fill="#fcd34d" font-family="Inter, sans-serif" font-size="10" opacity="0.7">Numeric audit</text>
+
+          <rect x="705" y="472" width="150" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1"/>
+          <text x="780" y="493" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10">LLM: Sales script</text>
+
+          <rect x="705" y="520" width="150" height="34" rx="6" fill="#1a1a2e" stroke="#525252" stroke-width="1"/>
+          <text x="780" y="541" text-anchor="middle" fill="#a3a3a3" font-family="Inter, sans-serif" font-size="10">Save to DB</text>
+
+          <line x1="780" y1="268" x2="780" y2="304" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="780" y1="338" x2="780" y2="346" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="780" y1="380" x2="780" y2="388" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="780" y1="422" x2="780" y2="430" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="780" y1="464" x2="780" y2="472" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+          <line x1="780" y1="506" x2="780" y2="520" stroke="#525252" stroke-width="1" marker-end="url(#arrow)"/>
+        </g>
+
+        <!-- Converge arrows to collect_results -->
+        <line x1="160" y1="580" x2="400" y2="616" stroke="#525252" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="470" y1="580" x2="470" y2="612" stroke="#525252" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="780" y1="580" x2="540" y2="616" stroke="#525252" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- collect_results -->
+        <rect x="400" y="616" width="140" height="34" rx="6" fill="#1a1a2e" stroke="#525252" stroke-width="1.5"/>
+        <text x="470" y="637" text-anchor="middle" fill="#a3a3a3" font-family="Inter, sans-serif" font-size="11">collect_results</text>
+        <text x="470" y="660" text-anchor="middle" fill="#525252" font-family="Inter, sans-serif" font-size="9" font-style="italic">operator.add reducer</text>
+
+        <!-- Arrow to END -->
+        <line x1="470" y1="660" x2="470" y2="680" stroke="#525252" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- END node -->
+        <circle cx="470" cy="698" r="16" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="470" y="702" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="10" font-weight="600">END</text>
+
+        <!-- Legend -->
+        <g transform="translate(30, 620)">
+          <text x="0" y="0" fill="#525252" font-family="Inter, sans-serif" font-size="9" font-weight="600">LEGEND</text>
+          <rect x="0" y="8" width="12" height="12" rx="2" fill="#1a2e1a" stroke="#22c55e" stroke-width="1"/>
+          <text x="18" y="18" fill="#525252" font-family="Inter, sans-serif" font-size="9">LLM call (with retry)</text>
+          <rect x="0" y="26" width="12" height="12" rx="2" fill="#2e1a2e" stroke="#a855f7" stroke-width="1"/>
+          <text x="18" y="36" fill="#525252" font-family="Inter, sans-serif" font-size="9">Pydantic validation</text>
+          <rect x="0" y="44" width="12" height="12" rx="2" fill="#2e2e1a" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+          <text x="18" y="54" fill="#525252" font-family="Inter, sans-serif" font-size="9">Non-blocking check</text>
+          <rect x="0" y="62" width="12" height="12" rx="2" fill="#1a2e1a" stroke="#22c55e" stroke-width="1" stroke-dasharray="3,2"/>
+          <text x="18" y="72" fill="#525252" font-family="Inter, sans-serif" font-size="9">Conditional LLM call</text>
+        </g>
+      </svg>
     </div>
 
-    <h3>Report Generation Graph</h3>
-    <p>Handles the core workload: turning account data into full reports with sales scripts. The graph uses LangGraph's <code>Send()</code> primitive for fan-out parallelism.</p>
-
-    <table class="flow-table">
-      <thead>
-        <tr><th>Node</th><th>What it does</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>fan_out</td>
-          <td>Reads <code>account_ids</code> from state and emits one <code>Send("process_account", ...)</code> per ID. LangGraph runs all of them concurrently.</td>
-        </tr>
-        <tr>
-          <td>process_account</td>
-          <td>Runs once per account in parallel. Fetches the account summary and historical deals, calls the LLM twice (report + sales script), then saves the result to the database via the Next.js API.</td>
-        </tr>
-        <tr>
-          <td>collect_results</td>
-          <td>No-op. Results from each <code>process_account</code> fork are already merged into the parent state via an <code>operator.add</code> reducer on the <code>results</code> and <code>errors</code> fields.</td>
-        </tr>
-        <tr>
-          <td>finalize</td>
-          <td>No-op. The graph returns the final aggregated state to the caller.</td>
-        </tr>
-      </tbody>
-    </table>
-
     <h3>Opportunities Graph</h3>
-    <p>A simpler, single-node pipeline. When the user clicks "Find Opportunities," this graph receives a batch of account IDs, fetches all their summaries in one API call, and sends the full dataset to the LLM for triage.</p>
+    <p>A simpler pipeline. When the user clicks "Find Opportunities," this graph receives a batch of account IDs, fetches all summaries in one API call, and sends the full dataset to the LLM for cross-account triage.</p>
 
-    <table class="flow-table">
-      <thead>
-        <tr><th>Node</th><th>What it does</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>fetch_and_analyze</td>
-          <td>Fetches summaries for all candidate accounts, builds a compact JSON payload, sends it to the LLM with classification instructions (upsell / renegotiation / churn risk), and parses the recommended account IDs from the response.</td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Opportunities Graph - inline SVG -->
+    <div style="margin: 32px 0 40px; overflow-x: auto;">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" style="max-width: 720px; width: 100%; height: auto;">
+        <defs>
+          <marker id="opp-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#525252"/></marker>
+        </defs>
+
+        <rect width="720" height="200" rx="16" fill="#0f0f0f" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+        <text x="360" y="32" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="14" font-weight="600">OPPORTUNITIES GRAPH</text>
+
+        <!-- START -->
+        <circle cx="60" cy="110" r="20" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="60" y="114" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="10" font-weight="600">START</text>
+
+        <line x1="80" y1="110" x2="120" y2="110" stroke="#525252" stroke-width="1.5" marker-end="url(#opp-arrow)"/>
+
+        <!-- Fetch summaries -->
+        <rect x="124" y="93" width="120" height="34" rx="6" fill="#1a1a2e" stroke="#525252" stroke-width="1"/>
+        <text x="184" y="114" text-anchor="middle" fill="#a3a3a3" font-family="Inter, sans-serif" font-size="10">Fetch summaries</text>
+        <text x="184" y="140" text-anchor="middle" fill="#525252" font-family="Inter, sans-serif" font-size="9" font-style="italic">shared HTTP client</text>
+
+        <line x1="244" y1="110" x2="280" y2="110" stroke="#525252" stroke-width="1.5" marker-end="url(#opp-arrow)"/>
+
+        <!-- LLM classify -->
+        <rect x="284" y="93" width="130" height="34" rx="6" fill="#1a2e1a" stroke="#22c55e" stroke-width="1"/>
+        <text x="349" y="114" text-anchor="middle" fill="#86efac" font-family="Inter, sans-serif" font-size="10">LLM: Classify all</text>
+        <text x="349" y="140" text-anchor="middle" fill="#525252" font-family="Inter, sans-serif" font-size="9" font-style="italic">upsell / negotiation / churn</text>
+
+        <line x1="414" y1="110" x2="450" y2="110" stroke="#525252" stroke-width="1.5" marker-end="url(#opp-arrow)"/>
+
+        <!-- Validate -->
+        <rect x="454" y="93" width="130" height="34" rx="6" fill="#2e1a2e" stroke="#a855f7" stroke-width="1"/>
+        <text x="519" y="108" text-anchor="middle" fill="#d8b4fe" font-family="Inter, sans-serif" font-size="10">Pydantic validate</text>
+        <text x="519" y="122" text-anchor="middle" fill="#d8b4fe" font-family="Inter, sans-serif" font-size="9" opacity="0.7">OpportunitiesResult</text>
+
+        <line x1="584" y1="110" x2="620" y2="110" stroke="#525252" stroke-width="1.5" marker-end="url(#opp-arrow)"/>
+
+        <!-- END -->
+        <circle cx="650" cy="110" r="20" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="650" y="114" text-anchor="middle" fill="#60a5fa" font-family="Inter, sans-serif" font-size="10" font-weight="600">END</text>
+
+        <!-- Note about single-call strategy -->
+        <text x="360" y="178" text-anchor="middle" fill="#525252" font-family="Inter, sans-serif" font-size="10">Single LLM call with all accounts: cross-portfolio comparison requires full context</text>
+      </svg>
+    </div>
 
     <!-- ── Data Flow ── -->
     <h2>Data flow in detail</h2>
@@ -426,12 +612,16 @@
     <p>Account data lives in PostgreSQL, managed by Drizzle ORM in the Next.js app. The schema uses a flexible <code>account_usage_metrics</code> table (key-value: metric name, current value, limit value, unit) instead of rigid per-metric columns. This means any metric the user tracks (seats, API calls, storage, automation runs) is captured without schema changes.</p>
     <p>The Python agent fetches data through the Next.js REST API (<code>/api/account_summaries</code>), not directly from the database. Responses are cached in a file-based JSON cache with configurable TTL (1 day in dev, 10 minutes in prod).</p>
 
-    <h3>2. Two-pass LLM analysis</h3>
-    <p>Each account goes through two sequential LLM calls within the <code>process_account</code> node:</p>
+    <h3>2. Multi-pass LLM analysis with validation</h3>
+    <p>Each account goes through multiple sequential LLM calls within the <code>process_account</code> node:</p>
     <ol>
-      <li><strong>Pass 1: Analytical report.</strong> The LLM receives the account summary and 5-8 relevant historical deals (filtered by tier match and deal outcome). It produces a structured markdown report with situation analysis, key metrics, risk assessment, and next steps. The last line of output is a JSON metadata object with <code>proposition_type</code>, <code>success_percent</code>, <code>intervene</code>, <code>priority_score</code>, and <code>score_rationale</code>.</li>
+      <li><strong>Pass 1: Analytical report.</strong> The LLM receives the account summary and 5-8 relevant historical deals (filtered by tier match and deal outcome). It produces a structured markdown report with situation analysis, key metrics, risk assessment, and next steps. The last line of output is a JSON metadata object validated by a Pydantic <code>ReportMetadata</code> model (enforcing valid enum values, 0-100 ranges, etc.).</li>
+      <li><strong>Validation: Section check.</strong> After Pass 1, the pipeline verifies all 9 required report sections are present (Executive Summary, Situation, Complication, Resolution, Key Metrics, Evidence, Risks, Next Steps, Key Question). If sections are missing, a focused re-prompt asks the LLM to add only the missing parts.</li>
+      <li><strong>Validation: Numeric consistency.</strong> A non-blocking check verifies that key input numbers (current_value, limit_value from each usage metric) appear in the report text. If &gt;50% of input values are absent, a warning is logged. This does not block saving.</li>
+      <li><strong>Metadata fallback.</strong> If the JSON metadata line is missing or invalid, a <code>with_structured_output(ReportMetadata)</code> call extracts metadata from the report text as a fallback, rather than silently defaulting to "healthy" / 50%.</li>
       <li><strong>Pass 2: Sales script.</strong> Using the report from Pass 1 as context, a second LLM call generates a tailored sales script with talk tracks, objection handlers, and a closing framework. The script is appended to the report body before saving.</li>
     </ol>
+    <p>All LLM calls use <code>invoke_with_retry()</code> with exponential backoff (3 retries, handles rate limits and timeouts). Each call is gated by an <code>asyncio.Semaphore</code> to limit concurrent LLM requests across all parallel account forks.</p>
 
     <div class="callout">
       <p><strong>Why two passes?</strong> The analytical report and sales script serve different audiences and require different tones. Separating them lets each prompt focus on one task, producing better output than a single monolithic prompt. The second pass benefits from having the structured analysis as context.</p>
@@ -467,9 +657,9 @@
 
     <h3>Scaling characteristics</h3>
     <ul>
-      <li><strong>5 accounts:</strong> completes in roughly 1 LLM round-trip time (all 5 forks run in parallel)</li>
-      <li><strong>50 accounts:</strong> limited by LLM API concurrency. Each fork makes 2 sequential LLM calls + 2 HTTP calls (fetch + save)</li>
-      <li><strong>200 accounts:</strong> the split-button UI lets users choose batch size. Larger batches still fan out fully but may hit rate limits</li>
+      <li><strong>5 accounts:</strong> completes in roughly 1 LLM round-trip time (all 5 forks run in parallel, within the semaphore limit)</li>
+      <li><strong>50 accounts:</strong> concurrency limiter (default 5, configurable via <code>MAX_CONCURRENT_LLM</code>) ensures rate limits are respected. Each fork makes 2-3 sequential LLM calls + 2 HTTP calls (fetch + save)</li>
+      <li><strong>200 accounts:</strong> the split-button UI lets users choose batch size. The semaphore serializes LLM calls in groups, preventing rate-limit storms</li>
     </ul>
 
     <div class="callout">
@@ -538,6 +728,59 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- ── Resilience ── -->
+    <h2>Production resilience</h2>
+
+    <h3>LLM output validation</h3>
+    <p>All LLM metadata output is validated through a Pydantic <code>ReportMetadata</code> model that enforces <code>proposition_type</code> as a strict enum, <code>success_percent</code> as 0-100, <code>priority_score</code> as 1-10, and other fields. Previously, <code>_parse_report_metadata()</code> silently returned safe defaults on any parse failure, meaning a garbage LLM response would produce a saved report classified as "healthy" at 50% success with no indication of error.</p>
+    <p>On validation failure, a structured-output fallback call asks the LLM to extract metadata from the report text, with the response constrained to the Pydantic schema. This eliminates silent misclassification.</p>
+
+    <h3>Retry and backoff</h3>
+    <p><code>invoke_with_retry()</code> wraps all LLM calls with exponential backoff (base delay 1s, max 3 retries). It catches transient failures: <code>openai.RateLimitError</code>, <code>openai.APIError</code>, <code>httpx.TimeoutException</code>, and <code>httpx.ConnectError</code>. Each retry is logged via the structured tracing system. Non-retryable errors propagate immediately.</p>
+
+    <h3>Concurrency control</h3>
+    <p>The <code>Send()</code> fan-out dispatches all accounts simultaneously. Without limits, 50 accounts = 100 concurrent LLM calls, which will hit rate limits. A module-level <code>asyncio.Semaphore</code> (default 5, configurable via <code>MAX_CONCURRENT_LLM</code> env var) wraps each <code>model.ainvoke()</code> call. Data fetching remains fully parallel; only LLM calls are gated.</p>
+
+    <h3>HTTP resilience</h3>
+    <p>A shared <code>httpx.AsyncClient</code> with connection pooling and <code>httpx.AsyncHTTPTransport(retries=2)</code> replaces scattered per-request client instantiation. This reduces connection overhead and adds transport-level retries for transient network errors.</p>
+
+    <h3>Health check and graceful degradation</h3>
+    <p><code>GET /api/health</code> checks two components: database (via <code>SELECT 1</code> through Drizzle) and agent (HTTP ping to LangGraph URL). Returns 200 with <code>"status":"ok"</code> when both are healthy, 503 with <code>"status":"degraded"</code> and per-component status otherwise. Docker Compose uses this for container healthcheck.</p>
+    <p>The CopilotKit route handler is wrapped in try/catch, returning a 503 with a user-friendly error message when the agent is unreachable instead of an unhandled 500.</p>
+
+    <!-- ── Evaluation ── -->
+    <h2>Evaluation and observability</h2>
+
+    <h3>Evaluation harness</h3>
+    <p>15 contract cases in <code>evaluation/dataset.json</code> covering: classic upsell, overdue negotiation, churn risk, at-capacity, healthy, free-text input, narrow-but-deep usage, single-metric accounts, high-ARR enterprise with mixed signals, boundary cases (exactly 100%, exactly 85%), imminent renewal, and messy free-text data.</p>
+    <p>Each case is scored for classification accuracy (with equivalents for near-misses) and report quality: section completeness (9 required sections), metric table coverage (input numbers appearing in output), and ARR at Risk presence. A <code>--mock</code> flag uses pre-recorded LLM responses from <code>evaluation/fixtures/</code> for deterministic CI testing.</p>
+
+    <h3>Metrics</h3>
+    <p>In-memory counters in <code>tracing.py</code> track: <code>reports_generated_total</code> (by proposition type), <code>report_generation_errors_total</code>, <code>llm_retries_total</code>, and <code>report_generation_avg_duration_ms</code>. Exposed via <code>get_metrics()</code> and proxied through <code>GET /api/metrics</code>.</p>
+
+    <h3>LangSmith</h3>
+    <p>Optional LangSmith integration for LangGraph trace visibility. Set <code>LANGSMITH_API_KEY</code> in environment to enable. Provides end-to-end trace visualization of LangGraph runs including tool calls, state transitions, and LLM inputs/outputs.</p>
+
+    <h3>Langfuse</h3>
+    <p>Optional <a href="https://langfuse.com/">Langfuse</a> integration for LLM-specific observability. When <code>LANGFUSE_PUBLIC_KEY</code> and <code>LANGFUSE_SECRET_KEY</code> are set, all LLM calls are automatically traced via a Langfuse <code>CallbackHandler</code> passed to each <code>model.ainvoke()</code> call. This provides token/cost tracking, latency visualization, and prompt versioning without custom dashboards.</p>
+    <p>The evaluator node's quality scores (report_quality, metrics_accurate, classification_justified) are attached to Langfuse traces as evaluation metrics, creating an automatic quality-over-time dashboard. If Langfuse keys are not set, the existing structured JSON logging continues unchanged.</p>
+
+    <!-- ── Evaluator ── -->
+    <h2>Report quality evaluator</h2>
+
+    <p>After the initial LLM report generation, each report is scored by an LLM evaluator using <code>with_structured_output(ReportEvaluation)</code>. The evaluator receives the account input data, historical deals, generated report, and metadata, then scores against a quality rubric:</p>
+
+    <ul>
+      <li><strong>sections_complete</strong>: all 9 required sections present and non-empty</li>
+      <li><strong>metrics_accurate</strong>: input metric values (current_value, limit_value) appear correctly in the report. This replaces the previous deterministic string-matching check with an LLM-based verification</li>
+      <li><strong>classification_justified</strong>: proposition_type is consistent with the data signals described in the report</li>
+      <li><strong>evidence_grounded</strong>: historical deals referenced in the Evidence section exist in the input data</li>
+      <li><strong>overall_quality</strong>: <code>pass</code> / <code>marginal</code> / <code>fail</code></li>
+      <li><strong>issues</strong>: list of specific problems found (concrete, not vague)</li>
+    </ul>
+
+    <p>On <code>fail</code>, the pipeline re-analyzes the account with the evaluator's issues included as feedback in the prompt (max 1 retry). The retry is then re-evaluated. On <code>marginal</code>, the report is saved with a warning logged. On <code>pass</code>, the report proceeds to save. This implements a generate-then-verify pattern that catches hallucinations, fabricated deal references, and misclassifications before reports reach users.</p>
 
   </div>
 

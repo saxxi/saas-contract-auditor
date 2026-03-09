@@ -58,4 +58,6 @@ bun.lockb
 .turbo
 
 # Tools
-.claude
+.claude/*
+!.claude/skills/
+!.claude/skills

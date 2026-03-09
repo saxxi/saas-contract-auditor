@@ -162,5 +162,149 @@
     },
     "expected_type": "at capacity",
     "expected_intervene": false
+  },
+  {
+    "id": "eval-09",
+    "description": "Exactly at 100% on one metric, low on others - mixed signals",
+    "account": {
+      "id": "EVAL-09",
+      "name": "EdgeCase Ltd",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 50, "limit_value": 50, "unit": "users"},
+        {"metric_name": "api_calls", "current_value": 2000, "limit_value": 10000, "unit": "calls/mo"},
+        {"metric_name": "storage", "current_value": 100, "limit_value": 500, "unit": "GB"}
+      ],
+      "budget_report": {
+        "mrr": 3500,
+        "contract_value": 42000,
+        "tier": "Growth",
+        "renewal_in_days": 150,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "at capacity",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-10",
+    "description": "Overdue payment + low utilization - negotiation vs churn ambiguity",
+    "account": {
+      "id": "EVAL-10",
+      "name": "StrugglingCo",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 8, "limit_value": 50, "unit": "users"},
+        {"metric_name": "api_calls", "current_value": 500, "limit_value": 10000, "unit": "calls/mo"},
+        {"metric_name": "storage", "current_value": 20, "limit_value": 500, "unit": "GB"}
+      ],
+      "budget_report": {
+        "mrr": 4800,
+        "contract_value": 57600,
+        "tier": "Enterprise",
+        "renewal_in_days": 30,
+        "payment_status": "overdue"
+      }
+    },
+    "expected_type": "poor usage",
+    "expected_intervene": true
+  },
+  {
+    "id": "eval-11",
+    "description": "Single-metric account (seats only)",
+    "account": {
+      "id": "EVAL-11",
+      "name": "MinimalCo",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 42, "limit_value": 50, "unit": "users"}
+      ],
+      "budget_report": {
+        "mrr": 1200,
+        "contract_value": 14400,
+        "tier": "Starter",
+        "renewal_in_days": 90,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "upsell proposition",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-12",
+    "description": "High ARR enterprise with mixed signals",
+    "account": {
+      "id": "EVAL-12",
+      "name": "MegaCorp International",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 180, "limit_value": 200, "unit": "users"},
+        {"metric_name": "api_calls", "current_value": 450000, "limit_value": 500000, "unit": "calls/mo"},
+        {"metric_name": "storage", "current_value": 4200, "limit_value": 5000, "unit": "GB"},
+        {"metric_name": "integrations", "current_value": 15, "limit_value": 20, "unit": "active"},
+        {"metric_name": "automations", "current_value": 85, "limit_value": 100, "unit": "active"}
+      ],
+      "budget_report": {
+        "mrr": 52000,
+        "contract_value": 624000,
+        "tier": "Enterprise",
+        "renewal_in_days": 45,
+        "payment_status": "current"
+      },
+      "context": "Multi-year enterprise deal. 3 business units using the platform. Executive sponsor is the CTO."
+    },
+    "expected_type": "upsell proposition",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-13",
+    "description": "Imminent renewal (5 days) + healthy metrics",
+    "account": {
+      "id": "EVAL-13",
+      "name": "RenewalSoon Inc",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 30, "limit_value": 50, "unit": "users"},
+        {"metric_name": "api_calls", "current_value": 6000, "limit_value": 10000, "unit": "calls/mo"}
+      ],
+      "budget_report": {
+        "mrr": 3000,
+        "contract_value": 36000,
+        "tier": "Professional",
+        "renewal_in_days": 5,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "healthy",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-14",
+    "description": "Free-text with incomplete/messy data",
+    "account": {
+      "id": "EVAL-14",
+      "name": "Demo Account",
+      "raw_data": "client: scrappy startup, ~20 ppl\nthey use maybe 6-7 seats out of 50\nbarely touch the API, like 200 calls/month vs 10k limit\nstorage is almost empty\npaying $2,800/mo which seems like a lot for what they use\ncontract renews in about 2 months\npayments up to date though"
+    },
+    "expected_type": "poor usage",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-15",
+    "description": "All metrics at 85% boundary",
+    "account": {
+      "id": "EVAL-15",
+      "name": "BorderlineCo",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 43, "limit_value": 50, "unit": "users"},
+        {"metric_name": "api_calls", "current_value": 8500, "limit_value": 10000, "unit": "calls/mo"},
+        {"metric_name": "storage", "current_value": 425, "limit_value": 500, "unit": "GB"},
+        {"metric_name": "integrations", "current_value": 9, "limit_value": 10, "unit": "active"}
+      ],
+      "budget_report": {
+        "mrr": 5000,
+        "contract_value": 60000,
+        "tier": "Enterprise",
+        "renewal_in_days": 60,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "upsell proposition",
+    "expected_intervene": false
   }
 ]

@@ -19,15 +19,29 @@ defaultAgent.use(...aguiMiddleware);
 
 // 3. Define the route and CopilotRuntime for the agent
 export const POST = async (req: NextRequest) => {
-  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
-    endpoint: "/api/copilotkit",
-    serviceAdapter: new ExperimentalEmptyAdapter(),
-    runtime: new CopilotRuntime({
-      agents: {
-        default: defaultAgent,
-      },
-    }),
-  });
+  try {
+    const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
+      endpoint: "/api/copilotkit",
+      serviceAdapter: new ExperimentalEmptyAdapter(),
+      runtime: new CopilotRuntime({
+        agents: {
+          default: defaultAgent,
+        },
+      }),
+    });
 
-  return handleRequest(req);
+    return handleRequest(req);
+  } catch (error) {
+    console.error("CopilotKit agent error:", error);
+    return new Response(
+      JSON.stringify({
+        error:
+          "The AI agent is temporarily unavailable. Please try again in a moment.",
+      }),
+      {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
 };

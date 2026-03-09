@@ -8,9 +8,12 @@ import json
 import os
 from typing import TypedDict
 
-import httpx
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
+
+from src.resilience import get_http_client, invoke_with_retry
+from src.tracing import new_request_id, get_langfuse_config
+from src.types import OpportunitiesResult
 
 API_BASE = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
 MODEL_NAME = os.getenv("OPPORTUNITIES_MODEL", "gpt-5-mini")
@@ -61,21 +64,21 @@ class OpportunitiesState(TypedDict):
 async def fetch_and_analyze(state: OpportunitiesState) -> dict:
     """Fetch account summaries and analyze with LLM."""
     account_ids = state["account_ids"]
+    rid = new_request_id()
 
     # Fetch summaries
     ids_param = ",".join(account_ids)
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"{API_BASE}/api/account_summaries",
-            params={"account_ids": ids_param},
-            timeout=30,
-        )
-        summaries = resp.json() if resp.status_code == 200 else []
+    client = get_http_client()
+    resp = await client.get(
+        f"{API_BASE}/api/account_summaries",
+        params={"account_ids": ids_param},
+        timeout=30,
+    )
+    summaries = resp.json() if resp.status_code == 200 else []
 
     # Fetch account names
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{API_BASE}/api/accounts", timeout=30)
-        all_accounts = resp.json() if resp.status_code == 200 else []
+    resp = await client.get(f"{API_BASE}/api/accounts", timeout=30)
+    all_accounts = resp.json() if resp.status_code == 200 else []
     names = {a["id"]: a["name"] for a in all_accounts}
 
     # Build compact data for LLM
@@ -107,19 +110,22 @@ async def fetch_and_analyze(state: OpportunitiesState) -> dict:
         account_data=json.dumps(account_data, separators=(",", ":")),
     )
     model = ChatOpenAI(model=MODEL_NAME)
-    response = await model.ainvoke(prompt)
+    lf_config = get_langfuse_config()
+    response = await invoke_with_retry(model, prompt, request_id=rid, config=lf_config)
     llm_text = response.content
 
-    # Parse recommended IDs from last line
+    # Parse recommended IDs from last line with Pydantic validation
     recommended_ids = []
     lines = llm_text.strip().split("\n")
     for line in reversed(lines):
         line = line.strip()
         if line.startswith("[") and line.endswith("]"):
             try:
-                recommended_ids = json.loads(line)
+                raw_ids = json.loads(line)
+                result = OpportunitiesResult(recommended_ids=raw_ids)
+                recommended_ids = result.recommended_ids
                 break
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, ValueError):
                 continue
 
     # Extract analysis (everything except the JSON line)

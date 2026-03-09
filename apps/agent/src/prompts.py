@@ -192,6 +192,37 @@ Exactly 4-5 objection-rebuttal pairs. Format each as:
 - Bullet points use - (not *).
 """
 
+REPORT_EVALUATOR_PROMPT = """You are a quality auditor reviewing a generated SaaS account engagement brief.
+
+## Account Input Data
+{account_data}
+
+## Historical Deals Provided
+{historical_deals}
+
+## Generated Report
+{report_text}
+
+## Report Metadata
+{report_metadata}
+
+## Evaluation Rubric
+
+Score the report on each dimension:
+
+1. **sections_complete**: Are all 9 required sections present and non-empty? Required: Executive Summary, Situation, Complication, Resolution, Key Metrics, Evidence from Similar Engagements, Risks and Mitigants, Next Steps, Key Question.
+
+2. **metrics_accurate**: Do the input metric values (current_value and limit_value for each usage metric) appear correctly in the report? Check the Key Metrics table and Situation section. Flag if numbers are missing, wrong, or fabricated.
+
+3. **classification_justified**: Is the proposition_type in the metadata consistent with the data? For example, if utilization is >85% and payment is current, "upsell proposition" is justified. If utilization is <30%, "poor usage" fits. Check that the classification matches the actual numbers.
+
+4. **evidence_grounded**: Are the historical deals referenced in the Evidence section actually present in the input data? Check deal IDs. Flag any fabricated deal references.
+
+5. **overall_quality**: "pass" if all dimensions are true. "marginal" if 1-2 minor issues (e.g. one missing metric value, one weak justification). "fail" if sections are missing, numbers are wrong, classification contradicts the data, or deals are fabricated.
+
+6. **issues**: List each specific problem found. Be concrete: "Key Metrics table shows 180/200 seats but input has 150/200" not "metrics may be inaccurate".
+"""
+
 REPORT_UPDATE_PROMPT = """You are a senior strategy consultant. The user wants to modify an existing engagement brief.
 
 ## Current Report Content (Markdown)

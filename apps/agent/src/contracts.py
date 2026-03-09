@@ -1,7 +1,6 @@
 import json
 import os
 
-import httpx
 from langchain.tools import ToolRuntime, tool
 from langchain.messages import ToolMessage
 from langchain_openai import ChatOpenAI
@@ -10,9 +9,10 @@ from langgraph.types import Command
 from src.prompts import REPORT_UPDATE_PROMPT
 from src.report_graph import build_report_graph, _parse_report_metadata, _extract_report_body, analyze_account, _fetch_historical_deals
 from src.opportunities_graph import build_opportunities_graph
-from src.types import AgentState, Report, AccountReport
+from src.resilience import get_http_client, invoke_with_retry
+from src.types import AgentState, Report, AccountReport, ReportMetadata
 from src.transforms import _raw_json_to_summary
-from src.tracing import new_request_id, log_event, trace_operation
+from src.tracing import new_request_id, log_event, trace_operation, get_langfuse_config
 
 API_BASE = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
 MODEL_NAME = os.getenv("REPORT_MODEL", "gpt-5-mini")
@@ -156,15 +156,15 @@ async def get_report_content(account_id: str, runtime: ToolRuntime) -> str:
     if not account_id:
         return "Error: account_id is required"
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"{API_BASE}/api/account_reports/{account_id}",
-            timeout=30,
-        )
-        if resp.status_code != 200:
-            return f"No report found for account {account_id}"
-        report = resp.json()
-        return json.dumps(report)
+    client = get_http_client()
+    resp = await client.get(
+        f"{API_BASE}/api/account_reports/{account_id}",
+        timeout=30,
+    )
+    if resp.status_code != 200:
+        return f"No report found for account {account_id}"
+    report = resp.json()
+    return json.dumps(report)
 
 
 @tool
@@ -188,22 +188,24 @@ async def update_report(account_id: str, changes: str, runtime: ToolRuntime) -> 
             ]
         })
 
+    rid = new_request_id()
+
     # Fetch current report
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"{API_BASE}/api/account_reports/{account_id}",
-            timeout=30,
-        )
-        if resp.status_code != 200:
-            return Command(update={
-                "messages": [
-                    ToolMessage(
-                        content=f"No report found for account {account_id}",
-                        tool_call_id=runtime.tool_call_id,
-                    )
-                ]
-            })
-        current_report = resp.json()
+    client = get_http_client()
+    resp = await client.get(
+        f"{API_BASE}/api/account_reports/{account_id}",
+        timeout=30,
+    )
+    if resp.status_code != 200:
+        return Command(update={
+            "messages": [
+                ToolMessage(
+                    content=f"No report found for account {account_id}",
+                    tool_call_id=runtime.tool_call_id,
+                )
+            ]
+        })
+    current_report = resp.json()
 
     # Use LLM to apply changes
     prompt = REPORT_UPDATE_PROMPT.format(
@@ -211,38 +213,34 @@ async def update_report(account_id: str, changes: str, runtime: ToolRuntime) -> 
         user_changes=changes,
     )
     model = ChatOpenAI(model=MODEL_NAME)
-    response = await model.ainvoke(prompt)
+    lf_config = get_langfuse_config()
+    response = await invoke_with_retry(model, prompt, request_id=rid, config=lf_config)
     llm_text = response.content
 
-    # Parse metadata from last line
-    metadata = _parse_report_metadata(llm_text)
+    # Parse metadata with Pydantic validation
+    metadata = _parse_report_metadata(llm_text, request_id=rid)
     report_body_md = _extract_report_body(llm_text)
+    meta_dict = metadata.model_dump()
 
     # Update via API (raw markdown)
     report_id = current_report["id"]
-    async with httpx.AsyncClient() as client:
-        resp = await client.put(
-            f"{API_BASE}/api/account_reports/{report_id}",
-            json={
-                "content": report_body_md,
-                "proposition_type": metadata["proposition_type"],
-                "strategic_bucket": metadata.get("strategic_bucket", "Healthy Growth"),
-                "success_percent": metadata["success_percent"],
-                "intervene": metadata["intervene"],
-                "priority_score": metadata.get("priority_score", 5),
-                "score_rationale": metadata.get("score_rationale", ""),
-            },
-            timeout=30,
-        )
-        if resp.status_code != 200:
-            return Command(update={
-                "messages": [
-                    ToolMessage(
-                        content=f"Failed to update report for {account_id}",
-                        tool_call_id=runtime.tool_call_id,
-                    )
-                ]
-            })
+    resp = await client.put(
+        f"{API_BASE}/api/account_reports/{report_id}",
+        json={
+            "content": report_body_md,
+            **meta_dict,
+        },
+        timeout=30,
+    )
+    if resp.status_code != 200:
+        return Command(update={
+            "messages": [
+                ToolMessage(
+                    content=f"Failed to update report for {account_id}",
+                    tool_call_id=runtime.tool_call_id,
+                )
+            ]
+        })
 
     return Command(update={
         "focused_account_id": account_id,

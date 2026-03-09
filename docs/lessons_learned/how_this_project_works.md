@@ -41,12 +41,15 @@ scripts/            # Benchmark and utility scripts
 
 ### Key Components
 
-- **`apps/agent/src/report_graph.py`**: LangGraph StateGraph with `Send()` fan-out for parallel report generation
+- **`apps/agent/src/report_graph.py`**: LangGraph StateGraph with `Send()` fan-out for parallel report generation. Includes Pydantic validation, section validation, numeric consistency checks
 - **`apps/agent/src/opportunities_graph.py`**: Dedicated graph for "Find Opportunities" (bulk analysis to pick best accounts)
 - **`apps/agent/src/contracts.py`**: Agent tools (generate_reports, select_accounts, update_report)
 - **`apps/agent/src/prompts.py`**: LLM prompts for report analysis, sales scripts, and report updates
 - **`apps/agent/src/transforms.py`**: Converts raw JSON/text input to structured account summaries
-- **`apps/app/src/app/api/`**: Next.js REST API routes for accounts, reports, historical deals
+- **`apps/agent/src/resilience.py`**: Retry with backoff, shared HTTP client, concurrency limiter (asyncio.Semaphore)
+- **`apps/agent/src/types.py`**: Pydantic models (`ReportMetadata`, `OpportunitiesResult`) and TypedDict state types
+- **`apps/agent/src/tracing.py`**: Structured JSON logging + in-memory metrics counters
+- **`apps/app/src/app/api/`**: Next.js REST API routes for accounts, reports, historical deals, health check, metrics
 - **`apps/app/src/components/contracts/`**: React components for account tables, report modal, report preview
 
 ### State Management
@@ -94,4 +97,6 @@ pnpm install          # Install all dependencies
 pnpm dev              # Start both frontend and agent
 pnpm test             # Run unit tests
 cd apps/agent && uv run pytest  # Agent tests
+cd apps/agent && uv run python ../../evaluation/run_eval.py --mock  # Eval (mock)
+curl http://localhost:3000/api/health  # Health check
 ```

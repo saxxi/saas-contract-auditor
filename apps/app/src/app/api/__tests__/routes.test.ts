@@ -369,3 +369,29 @@ describe("GET /api/historical_deals", () => {
     expect(data).toEqual(deals);
   });
 });
+
+describe("GET /api/health", () => {
+  it("returns health status with component checks", async () => {
+    // Mock db.execute for the health check
+    vi.mock("@/lib/db", () => ({
+      db: {
+        execute: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
+      },
+    }));
+
+    // Mock global fetch for agent check
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({ ok: true });
+
+    const { GET } = await import("@/app/api/health/route");
+    const res = await GET();
+    const data = await res.json();
+
+    expect(data).toHaveProperty("status");
+    expect(data).toHaveProperty("db");
+    expect(data).toHaveProperty("agent");
+    expect(data).toHaveProperty("timestamp");
+
+    global.fetch = originalFetch;
+  });
+});
