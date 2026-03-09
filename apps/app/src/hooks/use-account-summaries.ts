@@ -7,8 +7,10 @@ export function useAccountSummaries(accountIds: string[]) {
     queryKey: ["account-summaries", sorted],
     queryFn: async () => {
       const res = await fetch(`/api/account_summaries?account_ids=${sorted}`);
+      if (!res.ok) throw new Error(`Failed to fetch summaries: ${res.status}`);
       return res.json();
     },
     enabled: accountIds.length > 0,
+    meta: { onError: (err: Error) => console.error("[useAccountSummaries]", err.message) },
   });
 }

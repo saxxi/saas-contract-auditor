@@ -54,11 +54,6 @@ export function ContractsCanvas() {
     wasRunningRef.current = agent.isRunning;
   }, [agent.isRunning, queryClient]);
 
-  // Log agent state changes
-  useEffect(() => {
-    console.log("[agent state]", agent.state);
-  }, [agent.state]);
-
   const handleSelect = useCallback((id: string) => {
     const existing: AccountReportEntry[] = agent.state?.account_reports ?? [];
     if (existing.some((ar) => ar.id === id)) return;
@@ -121,7 +116,7 @@ export function ContractsCanvas() {
       content: `Generate reports for these accounts: ${names.join(", ")}.`,
     });
     safeRunAgent();
-  }, [accountReports, reportsById, agent, accountsById, safeRunAgent]);
+  }, [accountReports, agent, accountsById, safeRunAgent]);
 
   const handleFindOpportunities = useCallback((batchSize: number) => {
     if (agent.isRunning) return;

@@ -1,0 +1,449 @@
+openapi: 3.1.0
+info:
+  title: Contract Auditor API
+  version: 1.0.0
+  description: REST API for the Contract Auditor application. Manages accounts, reports, summaries, and historical deals.
+
+paths:
+  /api/accounts:
+    get:
+      summary: List all accounts
+      responses:
+        "200":
+          description: Array of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Account"
+              example:
+                - id: "acc-001"
+                  name: "NorthStar Analytics"
+                - id: "acc-002"
+                  name: "Velocity Corp"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/accounts/{account_id}:
+    get:
+      summary: Get a single account by ID
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Account object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/account_summaries:
+    get:
+      summary: Get account summaries with usage metrics and budget
+      parameters:
+        - name: account_ids
+          in: query
+          required: true
+          description: Comma-separated list of account IDs
+          schema:
+            type: string
+          example: "acc-001,acc-002"
+      responses:
+        "200":
+          description: Array of account summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountSummary"
+        "400":
+          description: Missing or empty account_ids parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "account_ids query parameter is required"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/account_reports:
+    get:
+      summary: List all reports, ordered by generated_at desc
+      responses:
+        "200":
+          description: Array of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/account_reports/{id}:
+    get:
+      summary: Get the latest report by account ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Account ID to look up the report for
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Report object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      summary: Update report content and optional metadata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReportBody"
+            example:
+              content: "Updated report content..."
+              proposition_type: "upsell proposition"
+              success_percent: 80
+              intervene: true
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  details:
+                    type: object
+              example:
+                error: "Invalid request body"
+                details:
+                  content: ["Required"]
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/account_reports/batch:
+    post:
+      summary: Create reports for up to 5 accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [account_ids]
+              properties:
+                account_ids:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  maxItems: 5
+            example:
+              account_ids: ["acc-001", "acc-002"]
+      responses:
+        "201":
+          description: Array of created reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+        "400":
+          description: Invalid account_ids (empty, non-array, or >5 items)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/accounts/{account_id}/account_reports:
+    post:
+      summary: Create a report for a single account
+      description: |
+        Accepts a JSON body with report data (from agent) or falls back to mock generation if no body is provided.
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportBody"
+            example:
+              content: "Report content from agent..."
+              proposition_type: "upsell proposition"
+              success_percent: 75
+              intervene: false
+      responses:
+        "201":
+          description: Created report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/historical_deals:
+    get:
+      summary: List all historical deals
+      responses:
+        "200":
+          description: Array of historical deals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoricalDeal"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  schemas:
+    Account:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          example: "acc-001"
+        name:
+          type: string
+          example: "NorthStar Analytics"
+
+    AccountSummary:
+      type: object
+      required: [id, usage_metrics, budget_report]
+      properties:
+        id:
+          type: string
+        usage_metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageMetric"
+        budget_report:
+          $ref: "#/components/schemas/BudgetReport"
+        context:
+          type: string
+          nullable: true
+
+    UsageMetric:
+      type: object
+      required: [metric_name, current_value, limit_value, unit]
+      properties:
+        metric_name:
+          type: string
+          example: "active_users"
+        current_value:
+          type: number
+          example: 450
+        limit_value:
+          type: number
+          example: 500
+        unit:
+          type: string
+          example: "seats"
+
+    BudgetReport:
+      type: object
+      required: [mrr, contract_value, tier, renewal_in_days, payment_status]
+      properties:
+        mrr:
+          type: number
+          example: 12500
+        contract_value:
+          type: number
+          example: 150000
+        tier:
+          type: string
+          example: "Enterprise"
+        renewal_in_days:
+          type: integer
+          example: 45
+        payment_status:
+          type: string
+          example: "current"
+
+    PropositionType:
+      type: string
+      enum:
+        - "requires negotiation"
+        - "upsell proposition"
+        - "poor usage"
+        - "at capacity"
+        - "healthy"
+
+    Report:
+      type: object
+      required: [id, account_id, proposition_type, success_percent, intervene, content, generated_at, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+        proposition_type:
+          $ref: "#/components/schemas/PropositionType"
+        strategic_bucket:
+          type: string
+          nullable: true
+        success_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        intervene:
+          type: boolean
+        priority_score:
+          type: integer
+          minimum: 1
+          maximum: 10
+          nullable: true
+        score_rationale:
+          type: string
+          nullable: true
+        content:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateReportBody:
+      type: object
+      required: [content, proposition_type, success_percent, intervene]
+      properties:
+        content:
+          type: string
+          minLength: 1
+        proposition_type:
+          type: string
+          minLength: 1
+        strategic_bucket:
+          type: string
+        success_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        intervene:
+          type: boolean
+        priority_score:
+          type: integer
+          minimum: 1
+          maximum: 10
+        score_rationale:
+          type: string
+
+    UpdateReportBody:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+        proposition_type:
+          type: string
+        strategic_bucket:
+          type: string
+        success_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        intervene:
+          type: boolean
+        priority_score:
+          type: integer
+          minimum: 1
+          maximum: 10
+        score_rationale:
+          type: string
+
+    HistoricalDeal:
+      type: object
+      properties:
+        id:
+          type: string
+        deal_id:
+          type: string
+        account_name:
+          type: string
+        outcome:
+          type: string
+        deal_type:
+          type: string
+        tier:
+          type: string
+        mrr:
+          type: number
+        summary:
+          type: string
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "Not found"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "Internal server error"

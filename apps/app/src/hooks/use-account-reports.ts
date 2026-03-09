@@ -6,8 +6,10 @@ export function useAccountReports() {
     queryKey: ["account-reports"],
     queryFn: async () => {
       const res = await fetch("/api/account_reports");
+      if (!res.ok) throw new Error(`Failed to fetch reports: ${res.status}`);
       return res.json();
     },
+    meta: { onError: (err: Error) => console.error("[useAccountReports]", err.message) },
   });
 }
 
@@ -16,9 +18,11 @@ export function useAccountReport(id: string | null) {
     queryKey: ["account-reports", id],
     queryFn: async () => {
       const res = await fetch(`/api/account_reports/${id}`);
+      if (!res.ok) throw new Error(`Failed to fetch report ${id}: ${res.status}`);
       return res.json();
     },
     enabled: !!id,
+    meta: { onError: (err: Error) => console.error("[useAccountReport]", err.message) },
   });
 }
 
@@ -31,10 +35,14 @@ export function useUpdateReportContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
       });
+      if (!res.ok) throw new Error(`Failed to update report: ${res.status}`);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["account-reports"] });
+    },
+    onError: (err) => {
+      console.error("[useUpdateReportContent]", err.message);
     },
   });
 }
@@ -46,10 +54,14 @@ export function useGenerateReport() {
       const res = await fetch(`/api/accounts/${accountId}/account_reports`, {
         method: "POST",
       });
+      if (!res.ok) throw new Error(`Failed to generate report: ${res.status}`);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["account-reports"] });
+    },
+    onError: (err) => {
+      console.error("[useGenerateReport]", err.message);
     },
   });
 }
@@ -63,10 +75,14 @@ export function useGenerateReportsBatch() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ account_ids: accountIds }),
       });
+      if (!res.ok) throw new Error(`Failed to generate batch reports: ${res.status}`);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["account-reports"] });
+    },
+    onError: (err) => {
+      console.error("[useGenerateReportsBatch]", err.message);
     },
   });
 }

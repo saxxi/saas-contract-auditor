@@ -68,3 +68,10 @@
 - Textarea assertions in Playwright: use `toHaveValue()` not `toContainText()` since textarea content is in the `value` property, not inner text
 - Testing stack: Vitest + @testing-library/react + jsdom for unit/component tests, Playwright for e2e. Scripts: `test` (vitest run), `test:watch` (vitest), `test:e2e` (playwright), `test:e2e:ui` (playwright --ui)
 - Python agent tests: pytest + respx (httpx mocking) + time-machine (TTL tests). LangChain `ToolRuntime` must be a real dataclass instance (not MagicMock). Patch `ChatOpenAI` in the module where it's instantiated (e.g. `src.report_graph.ChatOpenAI` for `analyze_account`). Cache TTL tests: backdate file mtime with `os.utime()` rather than time-machine (file stat reads real FS time)
+- Split long files: `page.tsx` data constants extracted to `lib/landing-data.ts`, `contracts.py` types to `types.py` and `_raw_json_to_summary` to `transforms.py`. Re-exports from original modules maintain backward compat for existing imports
+- Zod validation on API routes: use `safeParse` for structured error responses. Keep fallback paths for backward compat (e.g. agent may send partial bodies)
+- React Query hooks: add `res.ok` check in queryFn to throw on non-200 responses, plus `onError` callbacks on mutations and `meta.onError` on queries for consistent error logging
+- API routes: wrap DB calls in try/catch, return `{ error: "..." }` with 500 status. Prevents unhandled promise rejections from crashing the server
+- Error boundaries: React class component wrapping `{children}` in layout (catch-all) and around `CopilotChat`/`ContractsCanvas` in demo page (third-party + complex component isolation). Fallback shows "Something went wrong" + retry button
+- `<head>` metadata added directly in `layout.tsx` JSX (title, description, viewport, favicon). Per-page titles deferred since the app is SPA-style
+- API docs: hand-maintained `openapi.yaml` preferred over auto-generation tooling for ~10 routes. Co-located JSDoc comments in route handlers reference the spec

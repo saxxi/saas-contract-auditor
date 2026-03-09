@@ -10,9 +10,9 @@ from src.contracts import (
     get_report_content,
     update_report,
     analyze_raw_data,
-    _raw_json_to_summary,
     API_BASE,
 )
+from src.transforms import _raw_json_to_summary
 
 
 def test_select_accounts_adds_new(mock_tool_runtime):

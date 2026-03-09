@@ -1,4 +1,4 @@
-from src.contracts import _raw_json_to_summary
+from src.transforms import _raw_json_to_summary
 
 
 def test_new_format_passthrough():

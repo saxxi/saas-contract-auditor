@@ -7,7 +7,8 @@ from copilotkit import CopilotKitMiddleware
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 
-from src.contracts import AgentState, contracts_tools
+from src.contracts import contracts_tools
+from src.types import AgentState
 
 agent = create_agent(
     model=ChatOpenAI(model="gpt-5-mini", reasoning={"effort": "low", "summary": "concise"}),

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/hooks/use-theme";
@@ -31,6 +32,9 @@ function MoonIcon() {
 export function Navbar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const isDark =
     theme === "dark" ||
@@ -67,7 +71,7 @@ export function Navbar() {
           className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
           aria-label="Toggle theme"
         >
-          {isDark ? <SunIcon /> : <MoonIcon />}
+          {mounted ? (isDark ? <SunIcon /> : <MoonIcon />) : <span className="w-4 h-4" />}
         </button>
       </div>
     </nav>

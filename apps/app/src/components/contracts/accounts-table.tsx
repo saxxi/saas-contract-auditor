@@ -230,7 +230,7 @@ export function AccountsTable({
                         disabled={isAnyGenerating}
                         className="text-xs px-2 py-0.5 rounded border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        {generatingIds.has(account.id) ? "Generating..." : "Generate..."}
+                        {generatingIds.has(account.id) ? "Generating..." : "Generate"}
                       </button>
                     ) : (
                       <span className="text-xs text-zinc-400">--</span>

@@ -462,7 +462,7 @@ System prompt update to reflect:
 3. Click "Generated [open]" on one account → modal opens, chat keeps batch context
 4. In chat: "compare AC-1 and AC-2" → agent responds conversationally (no large text)
 5. In chat: "make AC-1 more aggressive" → agent opens AC-1 modal, applies change, asks "apply to others?"
-6. Single "Generate..." → same pipeline, 1 Send, chat shows single account summary
+6. Single "Generate" → same pipeline, 1 Send, chat shows single account summary
 7. Edit in TipTap → agent state gets `report_manually_edited: true`
 8. Chat "update this report" (with modal open) → agent fetches latest (including manual edits), updates via API
 9. Generate for non-existent account → error in chat, other accounts succeed

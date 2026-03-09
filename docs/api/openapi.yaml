@@ -1,0 +1,540 @@
+openapi: 3.1.0
+info:
+  title: Contract Auditor API
+  description: API for the Contract Auditor application - analyzes SaaS client contracts against usage data to identify upsell opportunities, renegotiation needs, and churn risks.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /api/accounts:
+    get:
+      summary: List all accounts
+      operationId: getAccounts
+      tags: [Accounts]
+      responses:
+        "200":
+          description: Array of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Account"
+              example:
+                - id: "acc_001"
+                  name: "Acme Corp"
+                - id: "acc_002"
+                  name: "Globex Inc"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/accounts/{account_id}:
+    get:
+      summary: Get a single account by ID
+      operationId: getAccount
+      tags: [Accounts]
+      parameters:
+        - $ref: "#/components/parameters/AccountId"
+      responses:
+        "200":
+          description: The account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+              example:
+                id: "acc_001"
+                name: "Acme Corp"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/accounts/{account_id}/account_reports:
+    post:
+      summary: Create a report for a single account
+      operationId: createAccountReport
+      tags: [Reports]
+      parameters:
+        - $ref: "#/components/parameters/AccountId"
+      requestBody:
+        description: Optional report data from the AI agent. If omitted or invalid, a mock report is generated.
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReportBody"
+            example:
+              content: "Acme Corp has exceeded contract limits..."
+              proposition_type: "requires negotiation"
+              success_percent: 85
+              intervene: true
+      responses:
+        "201":
+          description: Created report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/account_reports:
+    get:
+      summary: List all reports ordered by generated_at descending
+      operationId: getReports
+      tags: [Reports]
+      responses:
+        "200":
+          description: Array of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/account_reports/{id}:
+    get:
+      summary: Get the latest report for an account
+      operationId: getReport
+      tags: [Reports]
+      parameters:
+        - $ref: "#/components/parameters/ReportId"
+      responses:
+        "200":
+          description: The report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      summary: Update a report's content and optional metadata
+      operationId: updateReport
+      tags: [Reports]
+      parameters:
+        - $ref: "#/components/parameters/ReportId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReportBody"
+            example:
+              content: "Updated analysis for Acme Corp..."
+              proposition_type: "upsell proposition"
+              success_percent: 75
+              intervene: false
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/account_reports/batch:
+    post:
+      summary: Create reports for up to 5 accounts
+      operationId: createReportsBatch
+      tags: [Reports]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchCreateBody"
+            example:
+              account_ids: ["acc_001", "acc_002", "acc_003"]
+      responses:
+        "201":
+          description: Array of created reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/account_summaries:
+    get:
+      summary: Get account summaries with usage metrics and budget data
+      operationId: getAccountSummaries
+      tags: [Accounts]
+      parameters:
+        - name: account_ids
+          in: query
+          required: true
+          description: Comma-separated list of account IDs
+          schema:
+            type: string
+          example: "acc_001,acc_002"
+      responses:
+        "200":
+          description: Array of account summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountSummary"
+        "400":
+          description: Missing or empty account_ids parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "account_ids query parameter is required"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/historical_deals:
+    get:
+      summary: List all historical deals
+      operationId: getHistoricalDeals
+      tags: [Historical Deals]
+      responses:
+        "200":
+          description: Array of historical deals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoricalDeal"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  parameters:
+    AccountId:
+      name: account_id
+      in: path
+      required: true
+      description: Account ID
+      schema:
+        type: string
+      example: "acc_001"
+    ReportId:
+      name: id
+      in: path
+      required: true
+      description: Account ID (looks up the latest report for this account)
+      schema:
+        type: string
+      example: "acc_001"
+
+  schemas:
+    Account:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          example: "acc_001"
+        name:
+          type: string
+          example: "Acme Corp"
+
+    UsageMetric:
+      type: object
+      required: [metric_name, current_value, limit_value, unit]
+      properties:
+        metric_name:
+          type: string
+          example: "api_calls"
+        current_value:
+          type: number
+          example: 8500
+        limit_value:
+          type: number
+          example: 10000
+        unit:
+          type: ["string", "null"]
+          example: "requests/month"
+
+    BudgetReport:
+      type: object
+      required: [mrr, contract_value, tier, renewal_in_days, payment_status]
+      properties:
+        mrr:
+          type: number
+          example: 5000
+        contract_value:
+          type: number
+          example: 60000
+        tier:
+          type: string
+          example: "growth"
+        renewal_in_days:
+          type: integer
+          example: 45
+        payment_status:
+          type: string
+          example: "current"
+
+    AccountSummary:
+      type: object
+      required: [id, usage_metrics, budget_report, context]
+      properties:
+        id:
+          type: string
+          example: "acc_001"
+        usage_metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageMetric"
+        budget_report:
+          $ref: "#/components/schemas/BudgetReport"
+        context:
+          type: ["string", "null"]
+          example: "Enterprise client since 2022, primary use case is data analytics."
+
+    PropositionType:
+      type: string
+      enum:
+        - "requires negotiation"
+        - "upsell proposition"
+        - "poor usage"
+        - "at capacity"
+        - "healthy"
+
+    Report:
+      type: object
+      required:
+        - id
+        - account_id
+        - proposition_type
+        - strategic_bucket
+        - success_percent
+        - intervene
+        - priority_score
+        - score_rationale
+        - content
+        - generated_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+        account_id:
+          type: string
+          example: "acc_001"
+        proposition_type:
+          $ref: "#/components/schemas/PropositionType"
+        strategic_bucket:
+          type: ["string", "null"]
+          example: null
+        success_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 85
+        intervene:
+          type: boolean
+          example: true
+        priority_score:
+          type: ["integer", "null"]
+          minimum: 1
+          maximum: 10
+          example: 8
+        score_rationale:
+          type: ["string", "null"]
+          example: null
+        content:
+          type: string
+          example: "Acme Corp has exceeded contract limits on API calls..."
+        generated_at:
+          type: string
+          format: date-time
+          example: "2026-03-09T12:00:00.000Z"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-09T12:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-03-09T12:00:00.000Z"
+
+    CreateReportBody:
+      type: object
+      required: [content, proposition_type, success_percent, intervene]
+      properties:
+        content:
+          type: string
+          minLength: 1
+        proposition_type:
+          type: string
+          minLength: 1
+        strategic_bucket:
+          type: string
+        success_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        intervene:
+          type: boolean
+        priority_score:
+          type: integer
+          minimum: 1
+          maximum: 10
+        score_rationale:
+          type: string
+
+    UpdateReportBody:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+        proposition_type:
+          type: string
+        strategic_bucket:
+          type: string
+        success_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        intervene:
+          type: boolean
+        priority_score:
+          type: integer
+          minimum: 1
+          maximum: 10
+        score_rationale:
+          type: string
+
+    BatchCreateBody:
+      type: object
+      required: [account_ids]
+      properties:
+        account_ids:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            type: string
+            minLength: 1
+
+    HistoricalDeal:
+      type: object
+      required:
+        - id
+        - deal_id
+        - industry
+        - company_size
+        - original_tier
+        - proposed_tier
+        - deal_size_usd
+        - pitch_type
+        - pitch_summary
+        - main_objections
+        - objection_handling
+        - outcome
+        - time_to_close_days
+        - notes
+        - created_at
+      properties:
+        id:
+          type: string
+          example: "hd_001"
+        deal_id:
+          type: string
+          example: "DEAL-2025-001"
+        industry:
+          type: string
+          example: "technology"
+        company_size:
+          type: string
+          example: "mid-market"
+        original_tier:
+          type: string
+          example: "growth"
+        proposed_tier:
+          type: string
+          example: "enterprise"
+        deal_size_usd:
+          type: integer
+          example: 120000
+        pitch_type:
+          type: string
+          example: "upsell"
+        pitch_summary:
+          type: string
+          example: "Proposed enterprise tier with advanced analytics..."
+        main_objections:
+          type: string
+          example: "Budget constraints, implementation timeline concerns"
+        objection_handling:
+          type: string
+          example: "Offered phased rollout with quarterly billing..."
+        outcome:
+          type: string
+          example: "closed_won"
+        time_to_close_days:
+          type: integer
+          example: 30
+        notes:
+          type: string
+          example: "Champion was VP of Engineering"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-06-15T10:30:00.000Z"
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: "Resource not found"
+        details:
+          type: object
+          description: Field-level validation errors (from Zod)
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "Account not found"
+    ValidationError:
+      description: Invalid request body
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "Invalid request body"
+            details:
+              content: ["Required"]
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "Failed to fetch resource"

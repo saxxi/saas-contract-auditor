@@ -6,8 +6,10 @@ export function useAccounts() {
     queryKey: ["accounts"],
     queryFn: async () => {
       const res = await fetch("/api/accounts");
+      if (!res.ok) throw new Error(`Failed to fetch accounts: ${res.status}`);
       return res.json();
     },
     staleTime: Infinity,
+    meta: { onError: (err: Error) => console.error("[useAccounts]", err.message) },
   });
 }

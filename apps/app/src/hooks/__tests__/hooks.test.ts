@@ -23,7 +23,7 @@ beforeEach(() => {
 describe("useAccounts", () => {
   it("fetches /api/accounts and returns data", async () => {
     const accounts = [{ id: "1", name: "Acme" }];
-    mockFetch.mockResolvedValue({ json: () => Promise.resolve(accounts) });
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(accounts) });
 
     const { useAccounts } = await import("@/hooks/use-accounts");
     const { result } = renderHook(() => useAccounts(), { wrapper: createWrapper() });
@@ -37,7 +37,7 @@ describe("useAccounts", () => {
 describe("useAccountSummaries", () => {
   it("fetches with sorted comma-joined IDs", async () => {
     const summaries = [{ id: "1" }];
-    mockFetch.mockResolvedValue({ json: () => Promise.resolve(summaries) });
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(summaries) });
 
     const { useAccountSummaries } = await import("@/hooks/use-account-summaries");
     const { result } = renderHook(() => useAccountSummaries(["b", "a"]), {
@@ -63,7 +63,7 @@ describe("useAccountSummaries", () => {
 describe("useAccountReports", () => {
   it("fetches /api/account_reports", async () => {
     const reports = [{ id: "r1" }];
-    mockFetch.mockResolvedValue({ json: () => Promise.resolve(reports) });
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(reports) });
 
     const { useAccountReports } = await import("@/hooks/use-account-reports");
     const { result } = renderHook(() => useAccountReports(), { wrapper: createWrapper() });
@@ -76,7 +76,7 @@ describe("useAccountReports", () => {
 describe("useAccountReport", () => {
   it("fetches single report by ID", async () => {
     const report = { id: "r1", content: "test" };
-    mockFetch.mockResolvedValue({ json: () => Promise.resolve(report) });
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(report) });
 
     const { useAccountReport } = await import("@/hooks/use-account-reports");
     const { result } = renderHook(() => useAccountReport("r1"), { wrapper: createWrapper() });
@@ -97,7 +97,7 @@ describe("useAccountReport", () => {
 describe("useUpdateReportContent", () => {
   it("sends PUT with content", async () => {
     const updated = { id: "r1", content: "new" };
-    mockFetch.mockResolvedValue({ json: () => Promise.resolve(updated) });
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(updated) });
 
     const { useUpdateReportContent } = await import("@/hooks/use-account-reports");
     const { result } = renderHook(() => useUpdateReportContent(), { wrapper: createWrapper() });
@@ -116,7 +116,7 @@ describe("useUpdateReportContent", () => {
 describe("useGenerateReport", () => {
   it("sends POST to account reports endpoint", async () => {
     const report = { id: "r1" };
-    mockFetch.mockResolvedValue({ json: () => Promise.resolve(report) });
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(report) });
 
     const { useGenerateReport } = await import("@/hooks/use-account-reports");
     const { result } = renderHook(() => useGenerateReport(), { wrapper: createWrapper() });
@@ -133,7 +133,7 @@ describe("useGenerateReport", () => {
 describe("useGenerateReportsBatch", () => {
   it("sends POST with account_ids array", async () => {
     const reports = [{ id: "r1" }];
-    mockFetch.mockResolvedValue({ json: () => Promise.resolve(reports) });
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(reports) });
 
     const { useGenerateReportsBatch } = await import("@/hooks/use-account-reports");
     const { result } = renderHook(() => useGenerateReportsBatch(), { wrapper: createWrapper() });

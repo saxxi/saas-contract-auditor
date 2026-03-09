@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
-// Mock mock-db module
-vi.mock("@/lib/mock-db", () => ({
+// Mock db-queries module
+vi.mock("@/lib/db-queries", () => ({
   getAccounts: vi.fn(),
   getAccount: vi.fn(),
   getAccountSummaries: vi.fn(),
@@ -26,7 +26,7 @@ import {
   createReport,
   createReportFromData,
   getHistoricalDeals,
-} from "@/lib/mock-db";
+} from "@/lib/db-queries";
 
 const mockGetAccounts = vi.mocked(getAccounts);
 const mockGetAccount = vi.mocked(getAccount);
@@ -205,6 +205,22 @@ describe("PUT /api/account_reports/[id]", () => {
 
     expect(res.status).toBe(404);
   });
+
+  it("returns 400 when content is missing", async () => {
+    const { PUT } = await import("@/app/api/account_reports/[id]/route");
+    const res = await PUT(
+      new Request("http://localhost", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proposition_type: "healthy" }),
+      }),
+      { params: Promise.resolve({ id: "r1" }) }
+    );
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBeDefined();
+  });
 });
 
 describe("POST /api/account_reports/batch", () => {
@@ -245,6 +261,19 @@ describe("POST /api/account_reports/batch", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ account_ids: ["1", "2", "3", "4", "5", "6"] }),
+      })
+    );
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for empty account_ids array", async () => {
+    const { POST } = await import("@/app/api/account_reports/batch/route");
+    const res = await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ account_ids: [] }),
       })
     );
 

@@ -51,7 +51,7 @@ import {
   createReportFromData,
   updateReportContent,
   createReports,
-} from "@/lib/mock-db";
+} from "@/lib/db-queries";
 
 beforeEach(() => {
   vi.clearAllMocks();

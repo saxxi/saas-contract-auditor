@@ -2,40 +2,19 @@ import json
 import os
 
 import httpx
-from langchain.agents import AgentState as BaseAgentState
 from langchain.tools import ToolRuntime, tool
 from langchain.messages import ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.types import Command
-from typing import TypedDict, Literal
 
 from src.prompts import REPORT_UPDATE_PROMPT
 from src.report_graph import build_report_graph, _parse_report_metadata, _extract_report_body, analyze_account, _fetch_historical_deals
 from src.opportunities_graph import build_opportunities_graph
+from src.types import AgentState, Report, AccountReport
+from src.transforms import _raw_json_to_summary
 
 API_BASE = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
 MODEL_NAME = os.getenv("REPORT_MODEL", "gpt-5-mini")
-
-
-class Report(TypedDict):
-    proposition_type: str
-    success_percent: int
-    intervene: bool
-    content: str
-
-
-class AccountReport(TypedDict):
-    id: str
-    status: Literal["pending", "generated"]
-    report: Report | None
-
-
-class AgentState(BaseAgentState):
-    account_reports: list[AccountReport]
-    focused_account_id: str | None
-    report_manually_edited: bool
-    report_latest_content: str | None
-    demo_report: Report | None
 
 
 @tool
@@ -47,6 +26,16 @@ def select_accounts(account_ids: list[str], runtime: ToolRuntime) -> Command:
     After selecting, tell the user to review the selection and click
     'Generate reports for selected' when they are ready.
     """
+    if not account_ids:
+        return Command(update={
+            "messages": [
+                ToolMessage(
+                    content="No account IDs provided.",
+                    tool_call_id=runtime.tool_call_id
+                )
+            ]
+        })
+
     existing = runtime.state.get("account_reports", [])
     existing_ids = {ar["id"] for ar in existing}
 
@@ -83,6 +72,16 @@ async def generate_reports(account_ids: list[str], runtime: ToolRuntime) -> Comm
     Use this when the user asks to generate reports for selected accounts.
     After generation, summarize results conversationally, do NOT open any modal.
     """
+    if not account_ids:
+        return Command(update={
+            "messages": [
+                ToolMessage(
+                    content="No account IDs provided.",
+                    tool_call_id=runtime.tool_call_id
+                )
+            ]
+        })
+
     report_graph = build_report_graph()
     final_state = await report_graph.ainvoke({
         "account_ids": account_ids,
@@ -147,6 +146,9 @@ async def get_report_content(account_id: str, runtime: ToolRuntime) -> str:
     Use this before modifying a report to ensure you have the latest version
     (including any manual edits the user may have made in the editor).
     """
+    if not account_id:
+        return "Error: account_id is required"
+
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             f"{API_BASE}/api/account_reports/{account_id}",
@@ -169,6 +171,16 @@ async def update_report(account_id: str, changes: str, runtime: ToolRuntime) -> 
         account_id: The account ID whose report to update
         changes: Description of what changes to make
     """
+    if not account_id:
+        return Command(update={
+            "messages": [
+                ToolMessage(
+                    content="Error: account_id is required",
+                    tool_call_id=runtime.tool_call_id,
+                )
+            ]
+        })
+
     # Fetch current report
     async with httpx.AsyncClient() as client:
         resp = await client.get(
@@ -246,6 +258,16 @@ async def find_opportunities(account_ids: list[str], runtime: ToolRuntime) -> Co
     The frontend calls this with the IDs of unselected accounts.
     Do NOT ask for confirmation before calling this tool.
     """
+    if not account_ids:
+        return Command(update={
+            "messages": [
+                ToolMessage(
+                    content="No account IDs provided for opportunity analysis.",
+                    tool_call_id=runtime.tool_call_id,
+                )
+            ]
+        })
+
     graph = build_opportunities_graph()
     result = await graph.ainvoke({
         "account_ids": account_ids,
@@ -279,67 +301,6 @@ async def find_opportunities(account_ids: list[str], runtime: ToolRuntime) -> Co
     })
 
 
-def _raw_json_to_summary(data: dict) -> dict:
-    """Transform landing page JSON shape -> AccountSummary dict.
-
-    Accepts arbitrary usage metrics. If the input has a `usage_metrics` array,
-    pass it through. Otherwise, scan `usage` dict for paired current/limit
-    fields (e.g. active_users + seat_limit) and build metrics dynamically.
-    """
-    # If already in the new format, pass through
-    if "usage_metrics" in data:
-        return {
-            "id": "DEMO",
-            "name": data.get("account", "Demo Account"),
-            "usage_metrics": data["usage_metrics"],
-            "budget_report": data.get("contract", data.get("budget_report", {})),
-            "context": data.get("context"),
-        }
-
-    # Legacy format: scan usage dict for value/limit pairs
-    usage = data.get("usage", {})
-    metrics = []
-
-    # Known paired fields (old format)
-    known_pairs = [
-        ("active_users", "seat_limit", "seats", "users"),
-        ("monthly_invoices", "invoice_limit", "invoices", "invoices/mo"),
-        ("active_integrations", "integration_limit", "integrations", "active"),
-    ]
-
-    matched_keys = set()
-    for current_key, limit_key, metric_name, unit in known_pairs:
-        if current_key in usage:
-            metrics.append({
-                "metric_name": metric_name,
-                "current_value": usage[current_key],
-                "limit_value": usage.get(limit_key, usage[current_key]),
-                "unit": unit,
-            })
-            matched_keys.add(current_key)
-            matched_keys.add(limit_key)
-
-    # Pick up any remaining key/value pairs as generic metrics
-    for key, value in usage.items():
-        if key in matched_keys:
-            continue
-        if isinstance(value, (int, float)):
-            metrics.append({
-                "metric_name": key,
-                "current_value": value,
-                "limit_value": value,
-                "unit": None,
-            })
-
-    return {
-        "id": "DEMO",
-        "name": data.get("account", "Demo Account"),
-        "usage_metrics": metrics,
-        "budget_report": data.get("contract", data.get("budget_report", {})),
-        "context": data.get("context"),
-    }
-
-
 @tool
 async def analyze_raw_data(account_data: str, runtime: ToolRuntime) -> Command:
     """
@@ -349,6 +310,16 @@ async def analyze_raw_data(account_data: str, runtime: ToolRuntime) -> Command:
     OR free-form text (e.g. bullet-point client dataset).
     Pass the user's data as-is, do not restructure or summarize it.
     """
+    if not account_data or not account_data.strip():
+        return Command(update={
+            "messages": [
+                ToolMessage(
+                    content="No account data provided.",
+                    tool_call_id=runtime.tool_call_id,
+                )
+            ]
+        })
+
     # Try JSON first; fall back to raw text
     try:
         data = json.loads(account_data)
