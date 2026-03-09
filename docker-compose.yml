@@ -2,7 +2,7 @@ services:
   app-postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: contracts_auditor
+      POSTGRES_DB: saas_contract_auditor
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
@@ -61,7 +61,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile.app
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@app-postgres:5432/contracts_auditor
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@app-postgres:5432/saas_contract_auditor
       LANGGRAPH_DEPLOYMENT_URL: http://langgraph-api:8000
       OPENAI_API_KEY: ${OPENAI_API_KEY}
     ports:
@@ -78,7 +78,7 @@ services:
       dockerfile: docker/Dockerfile.app
       target: builder
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@app-postgres:5432/contracts_auditor
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@app-postgres:5432/saas_contract_auditor
     depends_on:
       app-postgres:
         condition: service_healthy

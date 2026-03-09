@@ -7,7 +7,7 @@ test.describe('Demo page', () => {
 
   test('page loads with navbar', async ({ page }) => {
     await expect(page.locator('nav')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Contract Auditor' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'SaaS Contract Auditor' })).toBeVisible();
   });
 
   test('has split layout with app content and chat areas', async ({ page }) => {

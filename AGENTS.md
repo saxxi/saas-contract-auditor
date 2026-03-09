@@ -1,6 +1,8 @@
-# Contracts Auditor
+# SaaS Contract Auditor
 
-AI-powered tool for SaaS companies to analyze client contracts against real usage data. Identifies upsell opportunities, accounts needing renegotiation, and churn risks. Generates consulting-grade reports with strategic recommendations, objection handlers, and next steps.
+AI-powered tool that compares SaaS contract limits against real account usage data to surface revenue opportunities. It classifies each account (upsell, renegotiation, churn risk, healthy) and generates consulting-grade reports with strategic recommendations, objection handlers, and sales scripts.
+
+This is NOT a legal document parser or blockchain smart contract tool. It works with structured account data (usage metrics, billing info, contract terms), not contract PDFs.
 
 ## Application Layout
 

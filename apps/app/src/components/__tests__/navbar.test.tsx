@@ -27,10 +27,10 @@ import { Navbar } from "../navbar";
 afterEach(() => cleanup());
 
 describe("Navbar", () => {
-  it("renders Contract Auditor brand link", () => {
+  it("renders SaaS Contract Auditor brand link", () => {
     mockUsePathname.mockReturnValue("/");
     render(<Navbar />);
-    const brand = screen.getByText("Contract Auditor");
+    const brand = screen.getByText("SaaS Contract Auditor");
     expect(brand).toBeDefined();
     expect(brand.closest("a")!.getAttribute("href")).toBe("/");
   });

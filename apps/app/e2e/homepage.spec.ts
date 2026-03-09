@@ -50,7 +50,7 @@ test.describe('Homepage', () => {
 
   test('navbar is visible with navigation links', async ({ page }) => {
     await expect(page.locator('nav')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Contract Auditor' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'SaaS Contract Auditor' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
     await expect(page.locator('nav').getByRole('link', { name: 'Demo' })).toBeVisible();
   });

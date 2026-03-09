@@ -1,15 +1,17 @@
-# Contracts Auditor
+# SaaS Contract Auditor
 
-[![CI](https://github.com/saxxi/contracts_auditor/actions/workflows/ci.yml/badge.svg)](https://github.com/saxxi/contracts_auditor/actions/workflows/ci.yml)
+[![CI](https://github.com/saxxi/saas-contract-auditor/actions/workflows/ci.yml/badge.svg)](https://github.com/saxxi/saas-contract-auditor/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB.svg)](https://www.python.org/)
 [![Node.js 22+](https://img.shields.io/badge/Node.js-22+-339933.svg)](https://nodejs.org/)
 
-**[View the project website](https://saxxi.github.io/contracts_auditor/)**
+**[View the project website](https://saxxi.github.io/saas-contract-auditor/)**
 
-An AI-powered tool that helps SaaS companies identify revenue opportunities hidden in their client contracts. It compares contract limits against actual usage data to surface accounts that are ready for upsell, need renegotiation, or show signs of churn risk.
+An AI-powered tool that **compares SaaS contract limits against real account usage data** to surface revenue opportunities. You give it structured account data (usage metrics, billing info, contract terms) and it tells you which accounts are ready for upsell, need renegotiation, or show signs of churn.
 
 Built for account executives, customer success teams, and revenue operations at any B2B SaaS company managing a portfolio of client contracts.
+
+> **Note:** This tool analyzes structured account data, not legal document text. It is not a contract clause parser or blockchain smart contract auditor.
 
 ### Homepage
 ![Homepage](docs/images/app_homepage.png)
@@ -20,15 +22,23 @@ Built for account executives, customer success teams, and revenue operations at 
 ### Report Detail
 ![Report Detail](docs/images/report_popup.png)
 
+## How It Works
+
+1. **Input**: Paste or load account data (seats used vs. limit, API calls, MRR, renewal date, payment status)
+2. **Analysis**: An LLM compares usage against contractual limits, computes utilization rates, and identifies mismatches
+3. **Output**: Each account gets a classification + a consulting-grade report with recommendations and a sales script
+
 ## What It Does
 
-- **Paste or load account data** (usage metrics, contract terms, billing info) and get a consulting-grade report with strategic recommendations
-- **Analyze accounts in bulk** across your portfolio to find the best opportunities
-- **Generate reports** that include situation analysis, risk assessment, objection handlers, and next steps
-- **Chat with the AI** about any account or report to refine the analysis
-- **Edit reports interactively** before sharing with your team
+- **Upsell detection**: Accounts approaching or exceeding contract limits (>85% utilization)
+- **Churn risk identification**: Low adoption, declining usage, poor engagement signals
+- **Renegotiation signals**: Overages, overdue payments with high usage, mismatched billing terms
+- **Account health classification**: Each account is classified as "upsell proposition", "requires negotiation", "poor usage", "at capacity", or "healthy"
+- **Consulting-grade reports**: Situation/complication/resolution analysis, key metrics table, evidence from similar deals, risks and mitigants, next steps, objection handlers, and a tailored sales script
+- **Bulk analysis**: Analyze your entire portfolio to find the best opportunities automatically
+- **Interactive editing**: Refine reports via chat or inline editing before sharing with your team
 
-Reports classify each account into categories like "upsell proposition", "requires negotiation", "poor usage", "at capacity", or "healthy" with a success probability score and a flag for whether immediate intervention is needed.
+Each report includes a success probability score (0-100), priority score (1-10), and an intervention flag for urgent accounts.
 
 ## Architecture
 
@@ -71,7 +81,7 @@ graph TD
 
 The agent uses LangGraph's `Send()` API to fan out report generation across multiple accounts in parallel, then collects results via state reducers. No external queue needed; the graph runtime handles concurrency.
 
-For a deeper walkthrough of the pipeline, data flow, and parallelism strategy, see the [full architecture page](https://saxxi.github.io/contracts_auditor/architecture.html).
+For a deeper walkthrough of the pipeline, data flow, and parallelism strategy, see the [full architecture page](https://saxxi.github.io/saas-contract-auditor/architecture.html).
 
 ## Tech Stack
 
@@ -136,12 +146,12 @@ cp .env.example .env
 Edit `.env` and add your keys:
 ```
 OPENAI_API_KEY=your-openai-api-key
-DATABASE_URL=postgresql://postgres@localhost:5432/contracts_auditor
+DATABASE_URL=postgresql://postgres@localhost:5432/saas_contract_auditor
 ```
 
 3. Set up the database:
 ```bash
-psql -U postgres -c "CREATE DATABASE contracts_auditor"
+psql -U postgres -c "CREATE DATABASE saas_contract_auditor"
 pnpm --filter @repo/app db:push
 pnpm --filter @repo/app db:seed
 ```
@@ -196,7 +206,7 @@ scripts/        # Benchmark and utility scripts
 
 Design decisions are recorded as numbered plans in [`docs/plans/`](docs/plans/). Each plan documents the problem, approach considered, tradeoffs, and outcome. Examples:
 
-- [001 - Frontend architecture](docs/plans/000000001_frontend_contracts_auditor.md)
+- [001 - Frontend architecture](docs/plans/000000001_frontend_saas_contract_auditor.md)
 - [005 - Report generation agent](docs/plans/000000005_report_generation_agent.md)
 - [016 - Flexible account data model](docs/plans/000000016_flexible_account_data_model.md)
 - [025 - Docker deployment](docs/plans/000000025_docker_deployment.md)
@@ -228,8 +238,8 @@ Dual-licensed under AGPL-3.0 and a commercial license. See [LICENSE](LICENSE) an
 
 **Database reset** (local):
 ```bash
-psql -U postgres -c "DROP DATABASE contracts_auditor"
-psql -U postgres -c "CREATE DATABASE contracts_auditor"
+psql -U postgres -c "DROP DATABASE saas_contract_auditor"
+psql -U postgres -c "CREATE DATABASE saas_contract_auditor"
 pnpm --filter @repo/app db:push
 pnpm --filter @repo/app db:seed
 ```

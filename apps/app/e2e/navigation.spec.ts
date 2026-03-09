@@ -25,7 +25,7 @@ test.describe('Navigation', () => {
 
   test('navbar logo links to homepage', async ({ page }) => {
     await page.goto('/demo');
-    await page.getByRole('link', { name: 'Contract Auditor' }).click();
+    await page.getByRole('link', { name: 'SaaS Contract Auditor' }).click();
     await expect(page).toHaveURL('/');
   });
 });

@@ -1,10 +1,10 @@
-# Contracts Auditor - Commercial License
+# SaaS Contract Auditor - Commercial License
 
 ## Overview
 
-Contracts Auditor is dual-licensed. The source code is available under the **GNU Affero General Public License v3.0 (AGPL-3.0)** for open source use. For individuals, startups, and enterprises that prefer not to comply with AGPL-3.0 obligations, commercial licenses are available under the terms described below.
+SaaS Contract Auditor is dual-licensed. The source code is available under the **GNU Affero General Public License v3.0 (AGPL-3.0)** for open source use. For individuals, startups, and enterprises that prefer not to comply with AGPL-3.0 obligations, commercial licenses are available under the terms described below.
 
-A commercial license grants you a perpetual, non-exclusive right to use Contracts Auditor in proprietary and closed-source applications without the AGPL-3.0 copyleft requirements.
+A commercial license grants you a perpetual, non-exclusive right to use SaaS Contract Auditor in proprietary and closed-source applications without the AGPL-3.0 copyleft requirements.
 
 ---
 
@@ -47,8 +47,8 @@ Both commercial license tiers include:
 
 The following restrictions apply to both commercial license tiers unless otherwise noted:
 
-1. **No sub-licensing.** You may not grant licenses to third parties to use Contracts Auditor independently, except where redistribution rights are explicitly included (Enterprise License).
-2. **No misrepresentation of origin.** You may not claim authorship of Contracts Auditor itself, though you may integrate it into your own product without attribution requirements.
+1. **No sub-licensing.** You may not grant licenses to third parties to use SaaS Contract Auditor independently, except where redistribution rights are explicitly included (Enterprise License).
+2. **No misrepresentation of origin.** You may not claim authorship of SaaS Contract Auditor itself, though you may integrate it into your own product without attribution requirements.
 3. **One license per entity.** The Personal/Startup License covers one company. If you operate multiple independent companies, each requires its own license. The Enterprise License covers the purchasing organization and its subsidiaries.
 4. **No warranty.** The software is provided "as is" without warranty of any kind. See the full disclaimer below.
 
@@ -78,7 +78,7 @@ Yes. The AGPL-3.0 license permits commercial use. However, AGPL-3.0 requires tha
 
 ### What if my team grows?
 
-The Personal/Startup License covers your entire company, not individual seats. Whether you have 2 developers or 200, a single Personal/Startup License covers all of them for use in one product. If you need to use Contracts Auditor across multiple products, consider the Enterprise License.
+The Personal/Startup License covers your entire company, not individual seats. Whether you have 2 developers or 200, a single Personal/Startup License covers all of them for use in one product. If you need to use SaaS Contract Auditor across multiple products, consider the Enterprise License.
 
 ### Do I get support?
 
@@ -101,4 +101,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---
 
-Copyright (c) 2026 Contracts Auditor. All rights reserved.
+Copyright (c) 2026 SaaS Contract Auditor. All rights reserved.

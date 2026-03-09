@@ -17,8 +17,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>Contract Auditor</title>
-        <meta name="description" content="AI-powered SaaS contract analysis. Identify upsell opportunities, renegotiation needs, and churn risks." />
+        <title>SaaS Contract Auditor</title>
+        <meta name="description" content="Compare SaaS contract limits against real usage data. Identify upsell opportunities, renegotiation needs, and churn risks." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </head>

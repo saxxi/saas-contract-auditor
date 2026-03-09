@@ -44,7 +44,7 @@ export function Navbar() {
   return (
     <nav className="h-12 flex items-center justify-between px-6 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shrink-0">
       <Link href="/" className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100">
-        Contract Auditor
+        SaaS Contract Auditor
       </Link>
       <div className="flex items-center gap-6">
         <Link
