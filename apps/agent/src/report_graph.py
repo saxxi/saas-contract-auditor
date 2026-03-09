@@ -16,6 +16,7 @@ from langgraph.types import Send
 
 from src.cache import cache_get, cache_set
 from src.prompts import REPORT_ANALYZER_PROMPT, SALES_SCRIPT_PROMPT
+from src.tracing import new_request_id, log_event, trace_operation
 
 API_BASE = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
 MODEL_NAME = os.getenv("REPORT_MODEL", "gpt-5-mini")
@@ -173,12 +174,15 @@ def fan_out(state: ReportGraphState) -> list[Send]:
     ]
 
 
-async def analyze_account(summary: dict, deals: list[dict]) -> dict:
+async def analyze_account(summary: dict, deals: list[dict], request_id: str | None = None) -> dict:
     """
     Pure analysis: takes account summary + historical deals, returns report.
     Doesn't know or care where the data came from.
     Returns: { content: str, proposition_type: str, success_percent: int, intervene: bool }
     """
+    rid = request_id or new_request_id()
+    account_id = summary.get("id", "unknown")
+
     # If raw_data is present, pass text directly to prompt; otherwise use structured JSON
     is_raw = "raw_data" in summary
     account_data_str = summary["raw_data"] if is_raw else json.dumps(summary, indent=2)
@@ -186,25 +190,34 @@ async def analyze_account(summary: dict, deals: list[dict]) -> dict:
     relevant_deals = deals[:5] if is_raw else _filter_relevant_deals(deals, summary)
 
     # Pass 1: analytical report
-    prompt = REPORT_ANALYZER_PROMPT.format(
-        account_data=account_data_str,
-        historical_deals=json.dumps(relevant_deals, indent=2),
-    )
-    model = ChatOpenAI(model=MODEL_NAME)
-    response = await model.ainvoke(prompt)
-    llm_text = response.content
+    with trace_operation("llm_report", rid, account_id=account_id) as ctx:
+        prompt = REPORT_ANALYZER_PROMPT.format(
+            account_data=account_data_str,
+            historical_deals=json.dumps(relevant_deals, indent=2),
+        )
+        model = ChatOpenAI(model=MODEL_NAME)
+        response = await model.ainvoke(prompt)
+        llm_text = response.content
 
     metadata = _parse_report_metadata(llm_text)
     report_body_md = _extract_report_body(llm_text)
 
     # Pass 2: sales script
-    script_prompt = SALES_SCRIPT_PROMPT.format(
-        report_content=report_body_md,
-        account_data=account_data_str,
-        proposition_type=metadata["proposition_type"],
-    )
-    script_response = await model.ainvoke(script_prompt)
-    report_body_md = report_body_md + "\n\n---\n\n" + script_response.content.strip()
+    with trace_operation("llm_script", rid, account_id=account_id):
+        script_prompt = SALES_SCRIPT_PROMPT.format(
+            report_content=report_body_md,
+            account_data=account_data_str,
+            proposition_type=metadata["proposition_type"],
+        )
+        script_response = await model.ainvoke(script_prompt)
+        report_body_md = report_body_md + "\n\n---\n\n" + script_response.content.strip()
+
+    log_event("analysis_result", rid,
+              account_id=account_id,
+              proposition_type=metadata["proposition_type"],
+              success_percent=metadata["success_percent"],
+              intervene=metadata["intervene"],
+              priority_score=metadata.get("priority_score", 5))
 
     return {
         "content": report_body_md,
@@ -218,32 +231,37 @@ async def process_account(state: ProcessAccountState) -> dict:
     Returns dict merged into parent state via reducers.
     """
     account_id = state["account_id"]
+    rid = new_request_id()
 
-    # 1. Fetch account summary
-    summary = await _fetch_account_summary(account_id)
-    if not summary:
-        return {
-            "results": [],
-            "errors": [f"Could not fetch data for account {account_id}"],
-        }
+    with trace_operation("report", rid, account_id=account_id) as ctx:
+        # 1. Fetch account summary
+        summary = await _fetch_account_summary(account_id)
+        if not summary:
+            return {
+                "results": [],
+                "errors": [f"Could not fetch data for account {account_id}"],
+            }
 
-    # 2. Fetch historical deals
-    all_deals = await _fetch_historical_deals()
+        # 2. Fetch historical deals
+        all_deals = await _fetch_historical_deals()
 
-    # 3. Run pure analysis
-    result = await analyze_account(summary, all_deals)
+        # 3. Run pure analysis
+        result = await analyze_account(summary, all_deals, request_id=rid)
 
-    # 4. Save via API (raw markdown)
-    saved = await _save_report(account_id, result["content"], {
-        "proposition_type": result["proposition_type"],
-        "success_percent": result["success_percent"],
-        "intervene": result["intervene"],
-    })
-    if not saved:
-        return {
-            "results": [],
-            "errors": [f"Failed to save report for account {account_id}"],
-        }
+        # 4. Save via API (raw markdown)
+        saved = await _save_report(account_id, result["content"], {
+            "proposition_type": result["proposition_type"],
+            "success_percent": result["success_percent"],
+            "intervene": result["intervene"],
+        })
+        if not saved:
+            return {
+                "results": [],
+                "errors": [f"Failed to save report for account {account_id}"],
+            }
+
+        ctx["proposition_type"] = result["proposition_type"]
+        ctx["success_percent"] = result["success_percent"]
 
     return {
         "results": [{"account_id": account_id, "report": saved}],

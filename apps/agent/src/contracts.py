@@ -12,6 +12,7 @@ from src.report_graph import build_report_graph, _parse_report_metadata, _extrac
 from src.opportunities_graph import build_opportunities_graph
 from src.types import AgentState, Report, AccountReport
 from src.transforms import _raw_json_to_summary
+from src.tracing import new_request_id, log_event, trace_operation
 
 API_BASE = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:3000")
 MODEL_NAME = os.getenv("REPORT_MODEL", "gpt-5-mini")
@@ -82,6 +83,9 @@ async def generate_reports(account_ids: list[str], runtime: ToolRuntime) -> Comm
             ]
         })
 
+    rid = new_request_id()
+    log_event("generate_reports", rid, account_ids=account_ids, count=len(account_ids))
+
     report_graph = build_report_graph()
     final_state = await report_graph.ainvoke({
         "account_ids": account_ids,
@@ -91,6 +95,9 @@ async def generate_reports(account_ids: list[str], runtime: ToolRuntime) -> Comm
 
     results = final_state.get("results", [])
     errors = final_state.get("errors", [])
+
+    log_event("generate_reports_done", rid,
+              success=len(results), errors=len(errors))
 
     existing = runtime.state.get("account_reports", [])
     existing_map = {ar["id"]: ar for ar in existing}
@@ -268,6 +275,9 @@ async def find_opportunities(account_ids: list[str], runtime: ToolRuntime) -> Co
             ]
         })
 
+    rid = new_request_id()
+    log_event("find_opportunities", rid, account_count=len(account_ids))
+
     graph = build_opportunities_graph()
     result = await graph.ainvoke({
         "account_ids": account_ids,
@@ -277,6 +287,9 @@ async def find_opportunities(account_ids: list[str], runtime: ToolRuntime) -> Co
 
     analysis = result.get("analysis", "No analysis produced.")
     recommended_ids = result.get("recommended_ids", [])
+
+    log_event("find_opportunities_done", rid,
+              recommended=len(recommended_ids), ids=recommended_ids)
 
     # Replace selection with only the recommended accounts
     new_entries = [

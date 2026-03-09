@@ -1,0 +1,166 @@
+[
+  {
+    "id": "eval-01",
+    "description": "High utilization, near limits, payment current - classic upsell",
+    "account": {
+      "id": "EVAL-01",
+      "name": "GrowthCo",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 47, "limit_value": 50, "unit": "users"},
+        {"metric_name": "api_calls", "current_value": 9200, "limit_value": 10000, "unit": "calls/mo"},
+        {"metric_name": "storage", "current_value": 450, "limit_value": 500, "unit": "GB"}
+      ],
+      "budget_report": {
+        "mrr": 4200,
+        "contract_value": 50400,
+        "tier": "Growth",
+        "renewal_in_days": 90,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "upsell proposition",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-02",
+    "description": "Over limits with overdue payment - requires negotiation",
+    "account": {
+      "id": "EVAL-02",
+      "name": "OverageCorp",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 65, "limit_value": 50, "unit": "users"},
+        {"metric_name": "invoices", "current_value": 1200, "limit_value": 1000, "unit": "invoices/mo"},
+        {"metric_name": "integrations", "current_value": 12, "limit_value": 10, "unit": "active"}
+      ],
+      "budget_report": {
+        "mrr": 3800,
+        "contract_value": 45600,
+        "tier": "Professional",
+        "renewal_in_days": 15,
+        "payment_status": "overdue"
+      }
+    },
+    "expected_type": "requires negotiation",
+    "expected_intervene": true
+  },
+  {
+    "id": "eval-03",
+    "description": "Very low utilization across all metrics - poor usage / churn risk",
+    "account": {
+      "id": "EVAL-03",
+      "name": "GhostInc",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 3, "limit_value": 50, "unit": "users"},
+        {"metric_name": "api_calls", "current_value": 120, "limit_value": 10000, "unit": "calls/mo"},
+        {"metric_name": "storage", "current_value": 8, "limit_value": 500, "unit": "GB"}
+      ],
+      "budget_report": {
+        "mrr": 5500,
+        "contract_value": 66000,
+        "tier": "Enterprise",
+        "renewal_in_days": 45,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "poor usage",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-04",
+    "description": "At capacity but not over, payment current",
+    "account": {
+      "id": "EVAL-04",
+      "name": "SteadyLtd",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 48, "limit_value": 50, "unit": "users"},
+        {"metric_name": "invoices", "current_value": 950, "limit_value": 1000, "unit": "invoices/mo"}
+      ],
+      "budget_report": {
+        "mrr": 2800,
+        "contract_value": 33600,
+        "tier": "Growth",
+        "renewal_in_days": 120,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "at capacity",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-05",
+    "description": "Balanced usage, no action needed",
+    "account": {
+      "id": "EVAL-05",
+      "name": "BalancedCo",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 25, "limit_value": 50, "unit": "users"},
+        {"metric_name": "api_calls", "current_value": 5000, "limit_value": 10000, "unit": "calls/mo"},
+        {"metric_name": "storage", "current_value": 200, "limit_value": 500, "unit": "GB"}
+      ],
+      "budget_report": {
+        "mrr": 3200,
+        "contract_value": 38400,
+        "tier": "Professional",
+        "renewal_in_days": 200,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "healthy",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-06",
+    "description": "Over limits, imminent renewal - urgent negotiation",
+    "account": {
+      "id": "EVAL-06",
+      "name": "UrgentTech",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 80, "limit_value": 50, "unit": "users"},
+        {"metric_name": "transactions", "current_value": 25000, "limit_value": 15000, "unit": "tx/mo"}
+      ],
+      "budget_report": {
+        "mrr": 8500,
+        "contract_value": 102000,
+        "tier": "Enterprise",
+        "renewal_in_days": 10,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "requires negotiation",
+    "expected_intervene": true
+  },
+  {
+    "id": "eval-07",
+    "description": "Free-text input - should still classify correctly",
+    "account": {
+      "id": "EVAL-07",
+      "name": "Demo Account",
+      "raw_data": "Company: TextDemo Corp\nPlan: Professional ($3,500/mo)\nSeats: 45/50 used\nAPI calls: 9,800/10,000 this month\nStorage: 480GB/500GB\nContract renewal: 60 days\nPayment: current\nNotes: Team lead asked about upgrading last quarter"
+    },
+    "expected_type": "upsell proposition",
+    "expected_intervene": false
+  },
+  {
+    "id": "eval-08",
+    "description": "Low seat usage but high transaction volume - narrow-but-deep, not churn",
+    "account": {
+      "id": "EVAL-08",
+      "name": "AutomateCo",
+      "usage_metrics": [
+        {"metric_name": "seats", "current_value": 5, "limit_value": 50, "unit": "users"},
+        {"metric_name": "transactions", "current_value": 48000, "limit_value": 50000, "unit": "tx/mo"},
+        {"metric_name": "integrations", "current_value": 9, "limit_value": 10, "unit": "active"},
+        {"metric_name": "api_calls", "current_value": 9500, "limit_value": 10000, "unit": "calls/mo"}
+      ],
+      "budget_report": {
+        "mrr": 6200,
+        "contract_value": 74400,
+        "tier": "Enterprise",
+        "renewal_in_days": 75,
+        "payment_status": "current"
+      }
+    },
+    "expected_type": "at capacity",
+    "expected_intervene": false
+  }
+]

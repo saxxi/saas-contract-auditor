@@ -25,6 +25,49 @@ Built for account executives, customer success teams, and revenue operations at 
 
 Reports classify each account into categories like "upsell proposition", "requires negotiation", "poor usage", "at capacity", or "healthy" with a success probability score and a flag for whether immediate intervention is needed.
 
+## Architecture
+
+```mermaid
+graph TD
+    User([User / Browser])
+
+    subgraph Docker["Docker Compose"]
+        subgraph Frontend["Next.js Standalone"]
+            UI[React 19 + CopilotKit UI]
+            API[Next.js API Routes]
+        end
+
+        subgraph Agent["LangGraph Agent"]
+            Chat[Chat Handler]
+            RG[Report Graph<br/>Send fan-out]
+            OG[Opportunities Graph]
+        end
+
+        AppDB[(PostgreSQL 17<br/>Accounts & Reports)]
+        AgentDB[(PostgreSQL 16 + pgvector<br/>LangGraph State)]
+        Redis[(Redis 6<br/>LangGraph Queue)]
+    end
+
+    User --> UI
+    UI --> API
+    API --> Chat
+    Chat --> RG
+    Chat --> OG
+    RG --> API
+    OG --> API
+    API --> AppDB
+    Chat --> AgentDB
+    Chat --> Redis
+
+    style Docker fill:none,stroke:#666
+    style Frontend fill:#e8f4f8,stroke:#2196F3
+    style Agent fill:#f3e8f4,stroke:#9C27B0
+```
+
+The agent uses LangGraph's `Send()` API to fan out report generation across multiple accounts in parallel, then collects results via state reducers. No external queue needed; the graph runtime handles concurrency.
+
+For a deeper walkthrough of the pipeline, data flow, and parallelism strategy, see the [full architecture page](https://saxxi.github.io/contracts_auditor/architecture.html).
+
 ## Tech Stack
 
 - **Frontend**: Next.js 16 (Turbopack), React 19, Tailwind CSS 4, Recharts
@@ -140,7 +183,35 @@ apps/
   agent/        # LangGraph Python agent
 docker/         # Dockerfiles for app and agent
 docs/           # Plans, lessons learned, reference material
+evaluation/     # Agent evaluation harness (dataset + accuracy tests)
+scripts/        # Benchmark and utility scripts
 ```
+
+## Architecture Decisions
+
+Design decisions are recorded as numbered plans in [`docs/plans/`](docs/plans/). Each plan documents the problem, approach considered, tradeoffs, and outcome. Examples:
+
+- [001 - Frontend architecture](docs/plans/000000001_frontend_contracts_auditor.md)
+- [005 - Report generation agent](docs/plans/000000005_report_generation_agent.md)
+- [016 - Flexible account data model](docs/plans/000000016_flexible_account_data_model.md)
+- [025 - Docker deployment](docs/plans/000000025_docker_deployment.md)
+
+Ongoing implementation decisions and lessons learned are tracked in [`docs/lessons_learned/decisions.md`](docs/lessons_learned/decisions.md), a running log of what worked, what didn't, and why specific approaches were chosen.
+
+## Observability
+
+The agent emits structured JSON logs for every operation. Each log entry includes a request ID, timing, and relevant context:
+
+```
+{"event":"report_start","request_id":"a1b2c3","account_id":"AC-1","timestamp":"..."}
+{"event":"report_complete","request_id":"a1b2c3","account_id":"AC-1","duration_ms":1842,"proposition_type":"upsell proposition","success_percent":75,"intervene":false}
+```
+
+Logs are written to stderr via Python's `logging` module. In Docker, they're captured by the container runtime. Set `LOG_LEVEL=DEBUG` for verbose output including cache hits and API call timing.
+
+## Development Approach
+
+This project was built with AI-assisted development (Claude Code). LLMs were used to accelerate scaffolding, boilerplate, and iterative refinement. The focus of the repository is on architecture, system design, and product thinking. The [`docs/plans/`](docs/plans/) folder and [`docs/lessons_learned/`](docs/lessons_learned/) folder document the actual decision-making process.
 
 ## License
 

@@ -78,3 +78,6 @@
 - Docker Compose uses 5 containers: app, app-postgres, langgraph-api, langgraph-postgres, langgraph-redis. LangGraph production image (`langchain/langgraph-api`) requires its own Postgres (pgvector for checkpointing) and Redis (pub-sub for streaming); these cannot be removed
 - Agent Dockerfile uses `langchain/langgraph-api:3.12` base image (Wolfi distro). It handles serving internally on port 8000. Set `LANGSERVE_GRAPHS` env to wire up the graph
 - Read tool cannot read files with `.app` extension (treats as binary). Use `cat` via Bash as workaround for `docker/Dockerfile.app`
+- Structured tracing via `src/tracing.py`: JSON logs to stderr with request IDs, timing, and context. Uses Python `logging` module, captured by Docker container runtime. Set `LOG_LEVEL=DEBUG` for verbose output
+- Evaluation harness in `evaluation/`: 8 contract cases with expected classifications. `run_eval.py` runs each through `analyze_account()` and reports accuracy. TYPE_EQUIVALENTS dict handles acceptable near-misses (e.g. "upsell proposition" and "at capacity" are close enough)
+- CI workflow triggers on `master` branch (not `main`). The default branch is `master`
