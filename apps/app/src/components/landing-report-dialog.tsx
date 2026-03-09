@@ -39,6 +39,7 @@ export function LandingReportDialog({ accountName, report, onClose }: LandingRep
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local editor state with prop changes
     setContent(report.content);
   }, [report.content]);
 

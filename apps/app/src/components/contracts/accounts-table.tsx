@@ -114,7 +114,7 @@ export function AccountsTable({
   accounts,
   selectedIds,
   reports,
-  summaries,
+  summaries: _summaries /* reserved for future metrics display */,
   onSelect,
   onDeselect,
   onDeselectAll,
@@ -126,9 +126,6 @@ export function AccountsTable({
   isFinding,
 }: AccountsTableProps) {
   const isAnyGenerating = generatingIds.size > 0;
-  const hasSelectedWithoutReport = accounts.some(
-    (a) => selectedIds.has(a.id) && !reports.has(a.id)
-  );
   const selectedCount = selectedIds.size;
   const unselectedCount = accounts.length - selectedCount;
 

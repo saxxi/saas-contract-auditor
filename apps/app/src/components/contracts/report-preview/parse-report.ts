@@ -72,7 +72,6 @@ export function replaceSectionBody(
 ): string {
   const lines = fullMarkdown.split("\n");
   // Body starts on the line after the heading (or at startLine if no heading)
-  const bodyStart = section.heading ? section.startLine + 1 : section.startLine;
   const replacement = section.heading
     ? [`### ${section.heading}`, newBody]
     : [newBody];

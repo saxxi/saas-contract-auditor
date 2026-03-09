@@ -28,9 +28,10 @@ export default function HomePage() {
     setShowDialog(false);
   };
 
-  // Watch agent state for demo_report
+  // Watch agent state for demo_report (syncing with external agent system)
   useEffect(() => {
     if (agent.state?.demo_report) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with external agent state
       setReportData(agent.state.demo_report);
       setShowDialog(true);
       setIsGenerating(false);
@@ -40,6 +41,7 @@ export default function HomePage() {
   // Reset generating state when agent stops
   useEffect(() => {
     if (!agent.isRunning && isGenerating && agent.state?.demo_report) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with external agent state
       setIsGenerating(false);
     }
   }, [agent.isRunning, isGenerating, agent.state?.demo_report]);

@@ -7,6 +7,19 @@ interface UsageTrendSparkProps {
   metrics: KeyMetric[];
 }
 
+const MONTHS = ["3m ago", "2m ago", "Last month", "Current"] as const;
+const OFFSETS = [3, 1, 4, 0] as const;
+
+function buildTrendData(avgPct: number) {
+  const d = MONTHS.map((label, i) => ({
+    month: label,
+    utilization: Math.round(Math.min(95, avgPct + (3 - i) * 12 + OFFSETS[i])),
+  }));
+  // Ensure current is lowest
+  d[3].utilization = Math.round(avgPct);
+  return d;
+}
+
 export function UsageTrendSpark({ metrics }: UsageTrendSparkProps) {
   const utilizationMetrics = metrics.filter(
     (m) => m.utilization && m.utilization !== "--" && m.utilization.includes("%")
@@ -19,14 +32,7 @@ export function UsageTrendSpark({ metrics }: UsageTrendSparkProps) {
     return sum + (parseInt(m.utilization.replace(/[^0-9]/g, ""), 10) || 0);
   }, 0) / utilizationMetrics.length;
 
-  // Simulate a declining trend line (current month is the lowest)
-  const months = ["3m ago", "2m ago", "Last month", "Current"];
-  const data = months.map((label, i) => ({
-    month: label,
-    utilization: Math.round(Math.min(95, avgPct + (3 - i) * 12 + Math.random() * 5)),
-  }));
-  // Ensure current is lowest
-  data[3].utilization = Math.round(avgPct);
+  const data = buildTrendData(avgPct);
 
   return (
     <div className="w-full">

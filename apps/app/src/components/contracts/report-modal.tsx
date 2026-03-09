@@ -57,6 +57,7 @@ export function ReportModal({ account, report, summary, onClose }: ReportModalPr
   }, [report.id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local editor state with prop changes
     setContent(report.content);
   }, [report.id, report.content]);
 

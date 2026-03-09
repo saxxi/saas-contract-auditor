@@ -15,7 +15,7 @@ import {
   type ParsedSection,
 } from "./parse-report";
 import { ObjectionCard } from "./objection-card";
-import { reportThemes, type ReportTheme } from "./theme-config";
+import { reportThemes } from "./theme-config";
 import { SectionHeader } from "./section-header";
 import { UtilizationGauge } from "./utilization-gauge";
 import { StatCard } from "./stat-card";
@@ -108,18 +108,18 @@ export function ReportPreview({ content, propositionType, successPercent, editab
     setEditingSectionId(sectionId);
   }, [editable]);
 
-  const handleSave = useCallback((sectionId: string, newBody: string) => {
+  const handleSave = (sectionId: string, newBody: string) => {
     const section = sections.find((s) => s.heading === sectionId || `exec-${s.heading}` === sectionId);
     if (section && onContentChange) {
       const updated = replaceSectionBody(content, section, newBody);
       onContentChange(updated);
     }
     setEditingSectionId(null);
-  }, [sections, content, onContentChange]);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     setEditingSectionId(null);
-  }, []);
+  };
 
   // Wrap content in editable section if editing is enabled
   const wrapEditable = (sectionId: string, section: ParsedSection | undefined, children: React.ReactNode) => {

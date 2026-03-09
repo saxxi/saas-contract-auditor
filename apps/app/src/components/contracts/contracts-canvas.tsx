@@ -30,7 +30,7 @@ export function ContractsCanvas() {
   }, [reports]);
 
   // Selection derived from agent state
-  const accountReports: AccountReportEntry[] = agent.state?.account_reports ?? [];
+  const accountReports: AccountReportEntry[] = useMemo(() => agent.state?.account_reports ?? [], [agent.state?.account_reports]);
   const selectedIds = useMemo(() => new Set(accountReports.map((ar) => ar.id)), [accountReports]);
   const focusedAccountId: string | null = agent.state?.focused_account_id ?? null;
 
@@ -48,6 +48,7 @@ export function ContractsCanvas() {
   useEffect(() => {
     if (wasRunningRef.current && !agent.isRunning) {
       queryClient.invalidateQueries({ queryKey: ["account-reports"] });
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing with external agent state
       setIsFindingOpportunities(false);
       setGeneratingIds(new Set());
     }

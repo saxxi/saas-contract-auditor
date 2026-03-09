@@ -38,6 +38,7 @@ export function EditableSection({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting draft when editing starts
     if (isEditing) setDraft(sectionBody);
   }, [isEditing, sectionBody]);
 
