@@ -67,3 +67,4 @@
 - Playwright selectors: CopilotKit renders its own textarea and links. Use scoped selectors (e.g. `textarea[spellcheck="false"]`, `page.locator('nav').getByRole(...)`) to avoid strict mode violations from multiple matching elements
 - Textarea assertions in Playwright: use `toHaveValue()` not `toContainText()` since textarea content is in the `value` property, not inner text
 - Testing stack: Vitest + @testing-library/react + jsdom for unit/component tests, Playwright for e2e. Scripts: `test` (vitest run), `test:watch` (vitest), `test:e2e` (playwright), `test:e2e:ui` (playwright --ui)
+- Python agent tests: pytest + respx (httpx mocking) + time-machine (TTL tests). LangChain `ToolRuntime` must be a real dataclass instance (not MagicMock). Patch `ChatOpenAI` in the module where it's instantiated (e.g. `src.report_graph.ChatOpenAI` for `analyze_account`). Cache TTL tests: backdate file mtime with `os.utime()` rather than time-machine (file stat reads real FS time)
