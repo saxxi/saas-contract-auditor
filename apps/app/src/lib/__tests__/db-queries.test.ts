@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Create a chainable mock that resolves to configurable data
-let resolveData: any[] = [];
+let resolveData: unknown[] = [];
 
-function createChain(): any {
+function createChain(): unknown {
   return new Proxy(
     {},
     {
       get(_target, prop) {
         if (prop === "then") {
           // Make the chain thenable — resolves with current resolveData
-          return (resolve: (v: any) => void) => resolve(resolveData);
+          return (resolve: (v: unknown) => void) => resolve(resolveData);
         }
         // Any method call returns the chain itself
-        return (..._args: any[]) => createChain();
+        return () => createChain();
       },
     }
   );
@@ -28,9 +28,9 @@ const mockUpdate = vi.fn().mockReturnValue({ set: mockUpdateSet });
 
 vi.mock("@/lib/db", () => ({
   db: {
-    select: (..._args: any[]) => createChain(),
-    insert: (...args: any[]) => mockInsert(...args),
-    update: (...args: any[]) => mockUpdate(...args),
+    select: () => createChain(),
+    insert: (...args: unknown[]) => mockInsert(...args),
+    update: (...args: unknown[]) => mockUpdate(...args),
   },
 }));
 
@@ -50,7 +50,6 @@ import {
   getHistoricalDeals,
   createReportFromData,
   updateReportContent,
-  createReports,
 } from "@/lib/db-queries";
 
 beforeEach(() => {

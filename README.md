@@ -1,5 +1,10 @@
 # Contracts Auditor
 
+[![CI](https://github.com/saxxi/contracts_auditor/actions/workflows/ci.yml/badge.svg)](https://github.com/saxxi/contracts_auditor/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB.svg)](https://www.python.org/)
+[![Node.js 22+](https://img.shields.io/badge/Node.js-22+-339933.svg)](https://nodejs.org/)
+
 **[View the project website](https://saxxi.github.io/contracts_auditor/)**
 
 An AI-powered tool that helps SaaS companies identify revenue opportunities hidden in their client contracts. It compares contract limits against actual usage data to surface accounts that are ready for upsell, need renegotiation, or show signs of churn risk.
