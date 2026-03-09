@@ -80,8 +80,24 @@ This starts both the Next.js UI (frontend) and the LangGraph agent (backend) con
 | `pnpm dev:app` | Start only the Next.js UI |
 | `pnpm dev:agent` | Start only the LangGraph agent |
 | `pnpm build` | Build for production |
+| `pnpm test` | Run unit tests |
 | `pnpm --filter @repo/app db:push` | Push schema to database |
 | `pnpm --filter @repo/app db:seed` | Seed accounts and historical deals |
+
+## Tests
+
+```bash
+# Frontend unit tests
+pnpm --filter app test
+
+# Frontend e2e tests (requires build + Chromium)
+pnpm --filter app build
+pnpm --filter app exec playwright install chromium
+pnpm --filter app test:e2e
+
+# Agent tests
+cd apps/agent && uv run pytest
+```
 
 ## Project Structure
 
