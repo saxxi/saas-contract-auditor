@@ -10,11 +10,29 @@ export interface UsageMetric {
   unit: string | null;
 }
 
+export interface AccountDocument {
+  document_type: string;
+  title: string;
+  content: string;
+  metadata?: string | null;
+}
+
 export interface AccountSummary {
   id: string;
   usage_metrics: UsageMetric[];
   budget_report: { mrr: number; contract_value: number; tier: string; renewal_in_days: number; payment_status: string };
   context: string | null;
+  documents?: AccountDocument[];
+}
+
+export interface AuditEvent {
+  id: string;
+  event_type: string;
+  actor: string;
+  resource_type: string;
+  resource_id: string;
+  detail: string | null;
+  created_at: string;
 }
 
 export type PropositionType =

@@ -202,6 +202,137 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /api/webhook/accounts:
+    post:
+      summary: Upsert account and related data via webhook
+      operationId: webhookUpsertAccount
+      tags: [Webhooks]
+      security:
+        - webhookSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookAccountPayload"
+            example:
+              account_key: "ext-acme-001"
+              name: "Acme Corp"
+              context: "Enterprise client, 3yr contract"
+              usage_metrics:
+                - metric_name: "api_calls"
+                  current_value: 8500
+                  limit_value: 10000
+                  unit: "requests/month"
+              budget:
+                mrr: 5000
+                contract_value: 60000
+                tier: "growth"
+                renewal_in_days: 45
+                payment_status: "current"
+              documents:
+                - document_type: "contract"
+                  title: "MSA 2025"
+                  content: "Full contract text..."
+      responses:
+        "201":
+          description: Account upserted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [account_key, upserted]
+                properties:
+                  account_key:
+                    type: string
+                  upserted:
+                    type: object
+                    properties:
+                      metrics:
+                        type: integer
+                      budget:
+                        type: boolean
+                      documents:
+                        type: integer
+              example:
+                account_key: "ext-acme-001"
+                upserted: { metrics: 1, budget: true, documents: 1 }
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          description: Missing signature header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Missing X-Webhook-Signature header"
+        "403":
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "Invalid webhook signature"
+        "413":
+          description: Payload too large (max 1MB)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Webhook secret not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/webhook/accounts/{account_key}:
+    delete:
+      summary: Delete account and all related data (cascade)
+      operationId: webhookDeleteAccount
+      tags: [Webhooks]
+      security:
+        - webhookSignature: []
+      parameters:
+        - name: account_key
+          in: path
+          required: true
+          description: The external account key
+          schema:
+            type: string
+          example: "ext-acme-001"
+      responses:
+        "200":
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account_key:
+                    type: string
+                  deleted:
+                    type: boolean
+              example:
+                account_key: "ext-acme-001"
+                deleted: true
+        "401":
+          description: Missing signature header
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/historical_deals:
     get:
       summary: List all historical deals
@@ -287,6 +418,23 @@ components:
           type: string
           example: "current"
 
+    AccountDocument:
+      type: object
+      required: [document_type, title, content]
+      properties:
+        document_type:
+          type: string
+          example: "contract"
+        title:
+          type: string
+          example: "MSA 2025"
+        content:
+          type: string
+          example: "Full contract text..."
+        metadata:
+          type: ["string", "null"]
+          example: null
+
     AccountSummary:
       type: object
       required: [id, usage_metrics, budget_report, context]
@@ -303,6 +451,10 @@ components:
         context:
           type: ["string", "null"]
           example: "Enterprise client since 2022, primary use case is data analytics."
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountDocument"
 
     PropositionType:
       type: string
@@ -500,6 +652,31 @@ components:
           format: date-time
           example: "2025-06-15T10:30:00.000Z"
 
+    WebhookAccountPayload:
+      type: object
+      required: [account_key, name]
+      properties:
+        account_key:
+          type: string
+          description: Stable external identifier for the account (used as the DB primary key)
+          example: "ext-acme-001"
+        name:
+          type: string
+          example: "Acme Corp"
+        context:
+          type: ["string", "null"]
+          example: "Enterprise client, 3yr contract"
+        usage_metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageMetric"
+        budget:
+          $ref: "#/components/schemas/BudgetReport"
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountDocument"
+
     Error:
       type: object
       required: [error]
@@ -538,3 +715,10 @@ components:
             $ref: "#/components/schemas/Error"
           example:
             error: "Failed to fetch resource"
+
+  securitySchemes:
+    webhookSignature:
+      type: apiKey
+      in: header
+      name: X-Webhook-Signature
+      description: "HMAC-SHA256 signature of the request body. Format: sha256=<hex_digest>. Computed with WEBHOOK_SECRET env var."

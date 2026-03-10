@@ -4,6 +4,7 @@ export const accounts = pgTable("accounts", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   context: text("context"),
+  tenant_id: text("tenant_id"),
   created_at: text("created_at").notNull(),
   updated_at: text("updated_at").notNull(),
 });
@@ -57,6 +58,33 @@ export const historicalDeals = pgTable("historical_deals", {
   notes: text("notes").notNull(),
   created_at: text("created_at").notNull(),
   updated_at: text("updated_at").notNull(),
+});
+
+export const accountDocuments = pgTable(
+  "account_documents",
+  {
+    id: text("id").primaryKey(),
+    account_id: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    document_type: text("document_type").notNull(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    metadata: text("metadata"),
+    created_at: text("created_at").notNull(),
+    updated_at: text("updated_at").notNull(),
+  },
+  (t) => [unique().on(t.account_id, t.document_type, t.title)]
+);
+
+export const auditEvents = pgTable("audit_events", {
+  id: text("id").primaryKey(),
+  event_type: text("event_type").notNull(),
+  actor: text("actor").notNull(),
+  resource_type: text("resource_type").notNull(),
+  resource_id: text("resource_id").notNull(),
+  detail: text("detail"),
+  created_at: text("created_at").notNull(),
 });
 
 export const reports = pgTable("reports", {

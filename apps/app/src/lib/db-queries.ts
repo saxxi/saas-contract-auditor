@@ -4,10 +4,12 @@ import {
   accounts as accountsTable,
   accountUsageMetrics,
   accountBudgets,
+  accountDocuments,
+  auditEvents,
   historicalDeals as historicalDealsTable,
   reports as reportsTable,
 } from "./db/schema";
-import { Account, AccountSummary, PropositionType, Report, UsageMetric } from "@/components/contracts/types";
+import { Account, AccountDocument, AccountSummary, AuditEvent, PropositionType, Report, UsageMetric } from "@/components/contracts/types";
 
 export async function getAccounts(): Promise<Account[]> {
   const rows = await db.select({ id: accountsTable.id, name: accountsTable.name }).from(accountsTable);
@@ -62,12 +64,42 @@ export async function getAccountSummaries(ids: string[]): Promise<AccountSummary
     metricsByAccount.set(row.account_id, metrics);
   }
 
-  return budgetRows.map((r) => ({
-    id: r.id,
-    usage_metrics: metricsByAccount.get(r.id) ?? [],
-    budget_report: { mrr: r.mrr, contract_value: r.contract_value, tier: r.tier, renewal_in_days: r.renewal_in_days, payment_status: r.payment_status },
-    context: r.context,
-  }));
+  const docRows = await db
+    .select({
+      account_id: accountDocuments.account_id,
+      document_type: accountDocuments.document_type,
+      title: accountDocuments.title,
+      content: accountDocuments.content,
+      metadata: accountDocuments.metadata,
+    })
+    .from(accountDocuments)
+    .where(inArray(accountDocuments.account_id, ids));
+
+  const docsByAccount = new Map<string, AccountDocument[]>();
+  for (const row of docRows) {
+    const docs = docsByAccount.get(row.account_id) ?? [];
+    docs.push({
+      document_type: row.document_type,
+      title: row.title,
+      content: row.content,
+      metadata: row.metadata,
+    });
+    docsByAccount.set(row.account_id, docs);
+  }
+
+  return budgetRows.map((r) => {
+    const summary: AccountSummary = {
+      id: r.id,
+      usage_metrics: metricsByAccount.get(r.id) ?? [],
+      budget_report: { mrr: r.mrr, contract_value: r.contract_value, tier: r.tier, renewal_in_days: r.renewal_in_days, payment_status: r.payment_status },
+      context: r.context,
+    };
+    const docs = docsByAccount.get(r.id);
+    if (docs && docs.length > 0) {
+      summary.documents = docs;
+    }
+    return summary;
+  });
 }
 
 export async function getReports(): Promise<Report[]> {
@@ -196,6 +228,138 @@ export async function updateReportContent(
 export async function getHistoricalDeals() {
   const rows = await db.select().from(historicalDealsTable);
   return rows;
+}
+
+// --- Webhook upsert/delete functions ---
+
+export async function upsertAccount(id: string, name: string, context?: string | null): Promise<void> {
+  const now = new Date().toISOString();
+  await db
+    .insert(accountsTable)
+    .values({ id, name, context: context ?? null, created_at: now, updated_at: now })
+    .onConflictDoUpdate({
+      target: accountsTable.id,
+      set: { name, context: context ?? null, updated_at: now },
+    });
+}
+
+export async function upsertUsageMetrics(
+  accountId: string,
+  metrics: { metric_name: string; current_value: number; limit_value: number; unit?: string | null }[]
+): Promise<number> {
+  const now = new Date().toISOString();
+  for (const m of metrics) {
+    await db
+      .insert(accountUsageMetrics)
+      .values({
+        id: crypto.randomUUID(),
+        account_id: accountId,
+        metric_name: m.metric_name,
+        current_value: String(m.current_value),
+        limit_value: String(m.limit_value),
+        unit: m.unit ?? null,
+        created_at: now,
+        updated_at: now,
+      })
+      .onConflictDoUpdate({
+        target: [accountUsageMetrics.account_id, accountUsageMetrics.metric_name],
+        set: {
+          current_value: String(m.current_value),
+          limit_value: String(m.limit_value),
+          unit: m.unit ?? null,
+          updated_at: now,
+        },
+      });
+  }
+  return metrics.length;
+}
+
+export async function upsertBudget(
+  accountId: string,
+  budget: { mrr: number; contract_value: number; tier: string; renewal_in_days: number; payment_status: string }
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db
+    .insert(accountBudgets)
+    .values({
+      id: crypto.randomUUID(),
+      account_id: accountId,
+      ...budget,
+      created_at: now,
+      updated_at: now,
+    })
+    .onConflictDoUpdate({
+      target: accountBudgets.account_id,
+      set: { ...budget, updated_at: now },
+    });
+}
+
+export async function replaceDocuments(
+  accountId: string,
+  documents: { document_type: string; title: string; content: string; metadata?: string | null }[]
+): Promise<number> {
+  const now = new Date().toISOString();
+  await db.delete(accountDocuments).where(eq(accountDocuments.account_id, accountId));
+  if (documents.length === 0) return 0;
+  const LARGE_DOC_THRESHOLD = 100 * 1024;
+  for (const doc of documents) {
+    if (doc.content.length > LARGE_DOC_THRESHOLD) {
+      console.warn(`Document "${doc.title}" (${doc.document_type}) for account ${accountId} is ${Math.round(doc.content.length / 1024)}KB`);
+    }
+  }
+  await db.insert(accountDocuments).values(
+    documents.map((d) => ({
+      id: crypto.randomUUID(),
+      account_id: accountId,
+      document_type: d.document_type,
+      title: d.title,
+      content: d.content,
+      metadata: d.metadata ?? null,
+      created_at: now,
+      updated_at: now,
+    }))
+  );
+  return documents.length;
+}
+
+export async function getAccountDocuments(accountId: string): Promise<AccountDocument[]> {
+  const rows = await db
+    .select({
+      document_type: accountDocuments.document_type,
+      title: accountDocuments.title,
+      content: accountDocuments.content,
+      metadata: accountDocuments.metadata,
+    })
+    .from(accountDocuments)
+    .where(eq(accountDocuments.account_id, accountId));
+  return rows;
+}
+
+export async function deleteAccountCascade(accountId: string): Promise<boolean> {
+  const account = await db
+    .select({ id: accountsTable.id })
+    .from(accountsTable)
+    .where(eq(accountsTable.id, accountId));
+  if (account.length === 0) return false;
+
+  await db.delete(reportsTable).where(eq(reportsTable.account_id, accountId));
+  await db.delete(accountDocuments).where(eq(accountDocuments.account_id, accountId));
+  await db.delete(accountUsageMetrics).where(eq(accountUsageMetrics.account_id, accountId));
+  await db.delete(accountBudgets).where(eq(accountBudgets.account_id, accountId));
+  await db.delete(accountsTable).where(eq(accountsTable.id, accountId));
+  return true;
+}
+
+export async function writeAuditEvent(event: Omit<AuditEvent, "id" | "created_at">): Promise<void> {
+  try {
+    await db.insert(auditEvents).values({
+      id: crypto.randomUUID(),
+      ...event,
+      created_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Failed to write audit event:", err);
+  }
 }
 
 export async function createReports(accountIds: string[]): Promise<Report[]> {

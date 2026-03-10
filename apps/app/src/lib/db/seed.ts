@@ -6,6 +6,8 @@ import {
   accounts,
   accountUsageMetrics,
   accountBudgets,
+  accountDocuments,
+  auditEvents,
   historicalDeals,
   reports,
 } from "./schema";
@@ -29,9 +31,11 @@ async function seed() {
 
   console.log("Clearing existing data...");
   await db.delete(reports);
+  await db.delete(accountDocuments);
   await db.delete(accountUsageMetrics);
   await db.delete(accountBudgets);
   await db.delete(accounts);
+  await db.delete(auditEvents);
   await db.delete(historicalDeals);
 
   console.log(`Seeding ${accountSeedData.length} accounts...`);

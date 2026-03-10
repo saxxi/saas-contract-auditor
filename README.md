@@ -325,6 +325,11 @@ OPENAI_API_KEY=your-openai-api-key
 DATABASE_URL=postgresql://postgres@localhost:5432/saas_contract_auditor
 ```
 
+Set up the Next.js app env (Next.js reads from `apps/app/.env.local`, not root `.env`):
+```bash
+cp apps/app/.env.example apps/app/.env.local
+```
+
 3. Set up the database:
 ```bash
 psql -U postgres -c "CREATE DATABASE saas_contract_auditor"
@@ -354,6 +359,7 @@ This starts both the Next.js UI (frontend) and the LangGraph agent (backend) con
 | `LANGFUSE_PUBLIC_KEY` | No | | Langfuse public key (enables LLM observability) |
 | `LANGFUSE_SECRET_KEY` | No | | Langfuse secret key |
 | `LANGFUSE_HOST` | No | `https://cloud.langfuse.com` | Langfuse host URL (for self-hosted) |
+| `WEBHOOK_SECRET` | No | | HMAC-SHA256 secret for webhook endpoints. Required for `/api/webhook/*`. Generate with `openssl rand -hex 32` |
 
 ## Available Scripts
 
@@ -425,15 +431,17 @@ scripts/                  # Benchmark and utility scripts
 
 ## Database Schema
 
-Four tables managed by Drizzle ORM in the Next.js app:
+Managed by Drizzle ORM in the Next.js app:
 
 | Table | Purpose |
 |-------|---------|
-| `accounts` | Account ID, name, and optional context (CS notes) |
+| `accounts` | Account ID, name, optional context (CS notes), and `tenant_id` (reserved for multi-tenancy) |
 | `account_usage_metrics` | Flexible key-value metrics (metric_name, current_value, limit_value, unit). Unique on (account_id, metric_name) |
 | `account_budgets` | MRR, contract value, tier, renewal timeline, payment status |
+| `account_documents` | Attached documents (contracts, usage logs, CS notes). Unique on (account_id, document_type, title) |
 | `historical_deals` | Past deal outcomes used as evidence in reports (industry, tier, pitch, objections, outcome) |
 | `reports` | Generated reports with classification metadata (proposition_type, success_percent, priority_score, content as markdown) |
+| `audit_events` | Write-only audit trail for webhook operations |
 
 The usage metrics table uses a flexible key-value design: any metric type (seats, API calls, storage, automations, transactions) is stored without schema changes.
 
